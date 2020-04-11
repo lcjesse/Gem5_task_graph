@@ -318,6 +318,7 @@ Export('extras_dir_list')
 
 # the ext directory should be on the #includes path
 main.Append(CPPPATH=[Dir('ext')])
+#main.Append(CPPPATH=[Dir('/home/wj/Study/anaconda3/envs/gem5/include')])
 
 # Add shared top-level headers
 main.Prepend(CPPPATH=Dir('include'))

@@ -117,6 +117,7 @@ machine(MachineType:L1Cache, "MI Example L1 Cache")
   }
 
   // FUNCTIONS
+  // transfer the Ruby Request to the event in SLICC
   Event mandatory_request_type_to_event(RubyRequestType type) {
    if (type == RubyRequestType:LD) {
       return Event:Load;
@@ -255,6 +256,7 @@ machine(MachineType:L1Cache, "MI Example L1 Cache")
             cacheMemory.cacheAvail(in_msg.LineAddress) == false ) {
           // make room for the block
           // Check if the line we want to evict is not locked
+          // the situation when need replacement
           Addr addr := cacheMemory.cacheProbe(in_msg.LineAddress);
           check_on_cache_probe(mandatoryQueue_in, addr);
           trigger(Event:Replacement, addr,
@@ -435,6 +437,7 @@ machine(MachineType:L1Cache, "MI Example L1 Cache")
     z_stall;
   }
 
+//Modified, issued PUT
   transition(MI, Inv) {
     o_popForwardedRequestQueue;
   }
@@ -455,6 +458,7 @@ machine(MachineType:L1Cache, "MI Example L1 Cache")
     o_popForwardedRequestQueue;
   }
 
+//Issued request for STORE/ATOMIC
   transition(I, Store, IM) {
     v_allocateTBE;
     i_allocateL1CacheBlock;
@@ -465,14 +469,18 @@ machine(MachineType:L1Cache, "MI Example L1 Cache")
 
   transition(I, {Load, Ifetch}, IS) {
     v_allocateTBE;
+    //Allocate a cache block
     i_allocateL1CacheBlock;
     a_issueRequest;
     p_profileMiss;
     m_popMandatoryQueue;
   }
 
+//get the data
   transition(IS, Data, M) {
+    //Write data to the cache, respNetIn
     u_writeDataToCache;
+    //External load completed
     rx_load_hit;
     w_deallocateTBE;
     n_popResponseQueue;

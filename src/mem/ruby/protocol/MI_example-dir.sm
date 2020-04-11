@@ -499,12 +499,17 @@ machine(MachineType:Directory, "Directory protocol")
   transition(I, GETX, IM) {
     //d_sendData;
     v_allocateTBEFromRequestNet;
+    //Queue off-chip fetch request, reqqueue_in
     qf_queueMemoryFetchRequest;
+    //The owner is now the requestor , modify the dir
     e_ownerIsRequestor;
     i_popIncomingRequestQueue;
   }
 
+
+//Fetched data from memory arrives, memory data triggered by the responsefrommemory
   transition(IM, Memory_Data, M) {
+    //Send data to requestor, memQin
     d_sendData;
     //e_ownerIsRequestor;
     w_deallocateTBE;
@@ -515,6 +520,7 @@ machine(MachineType:Directory, "Directory protocol")
   transition(I, DMA_READ, ID) {
     //dr_sendDMAData;
     r_allocateTbeForDmaRead;
+    //Queue off-chip fetch request, dma-req-queuein
     qf_queueMemoryFetchRequestDMA;
     p_popIncomingDMARequestQueue;
   }
@@ -530,30 +536,39 @@ machine(MachineType:Directory, "Directory protocol")
 
   transition(I, DMA_WRITE, ID_W) {
     v_allocateTBE;
+    //Queue off-chip writeback request, dma req queuein
     qw_queueMemoryWBRequest_partial;
     p_popIncomingDMARequestQueue;
   }
 
   transition(ID_W, Memory_Ack, I) {
+    //Send Ack to DMA controller
     da_sendDMAAck;
     w_deallocateTBE;
     l_popMemQueue;
   }
 
+  //DMA_READ dmaReqQin
   transition(M, DMA_READ, M_DRD) {
     v_allocateTBE;
+    //Invalidate a cache block, dmaReqQin
     inv_sendCacheInvalidate;
     p_popIncomingDMARequestQueue;
   }
 
+  //ReqQin
   transition(M_DRD, PUTX, M_DRDI) {
+    //Send Data to DMA controller from incoming PUTX
     drp_sendDMAData;
+    //Clear the owner field
     c_clearOwner;
+    //Write PUTX data to memory
     l_queueMemoryWBRequest;
     i_popIncomingRequestQueue;
   }
 
   transition(M_DRDI, Memory_Ack, I) {
+    //Send writeback ack to requestor, memQin
     l_sendWriteBackAck;
     w_deallocateTBE;
     l_popMemQueue;
@@ -562,25 +577,31 @@ machine(MachineType:Directory, "Directory protocol")
 
   transition(M, DMA_WRITE, M_DWR) {
     v_allocateTBE;
+    //Invalidate a cache block, DmaReqQin
     inv_sendCacheInvalidate;
     p_popIncomingDMARequestQueue;
   }
 
   transition(M_DWR, PUTX, M_DWRI) {
+    //Queue off-chip writeback request
     qw_queueMemoryWBRequest_partialTBE;
     c_clearOwner;
     i_popIncomingRequestQueue;
   }
 
   transition(M_DWRI, Memory_Ack, I) {
+    //memQin
     l_sendWriteBackAck;
+    //dmaRespOut
     da_sendDMAAck;
     w_deallocateTBE;
     l_popMemQueue;
   }
 
   transition(M, GETX, M) {
+    //Forward request to owner
     f_forwardRequest;
+    //The owner is now the requestor
     e_ownerIsRequestor;
     i_popIncomingRequestQueue;
   }
@@ -588,6 +609,7 @@ machine(MachineType:Directory, "Directory protocol")
   transition(M, PUTX, MI) {
     c_clearOwner;
     v_allocateTBEFromRequestNet;
+    //write PUTX data to memory
     l_queueMemoryWBRequest;
     i_popIncomingRequestQueue;
   }

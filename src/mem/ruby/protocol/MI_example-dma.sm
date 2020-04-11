@@ -189,7 +189,7 @@ machine(MachineType:DMA, "DMA Controller")
     dmaRequestQueue_in.dequeue(clockEdge());
   }
 
-  action(p_popResponseQueue, "\p", desc="Pop request queue") {
+  action(p_popResponseQueue, "\p", desc="Pop response queue") {
     dmaResponseQueue_in.dequeue(clockEdge());
   }
 
@@ -203,6 +203,7 @@ machine(MachineType:DMA, "DMA Controller")
 
   transition(READY, ReadRequest, BUSY_RD) {
     v_allocateTBE;
+    //Send a DMA read request to memory
     s_sendReadRequest;
     p_popRequestQueue;
   }
@@ -215,6 +216,7 @@ machine(MachineType:DMA, "DMA Controller")
 
   transition(BUSY_RD, Data, READY) {
     t_updateTBEData;
+    //Write data to dma sequencer
     d_dataCallback;
     w_deallocateTBE;
     p_popResponseQueue;
