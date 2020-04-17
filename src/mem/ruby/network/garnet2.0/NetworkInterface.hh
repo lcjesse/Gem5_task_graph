@@ -74,6 +74,18 @@ class NetworkInterface : public ClockedObject, public Consumer
 
     uint32_t functionalWrite(Packet *);
 
+    //for task graph traffic
+    int add_task(GraphTask &t);
+    int	sort_task_list();
+    int get_task_offset_by_task_id(int tid);
+    GraphTask& get_task_by_task_id(int tid);
+    NodeID get_ni_id() { return m_id; }
+    unsigned int get_task_list_length() { return task_list.size(); }
+    GraphTask& get_task_by_offset(int i){ return task_list[i]; }
+
+    void task_execution();
+
+
   private:
     GarnetNetwork *m_net_ptr;
     const NodeID m_id;
@@ -116,6 +128,27 @@ class NetworkInterface : public ClockedObject, public Consumer
     void sendCredit(flit *t_flit, bool is_free);
 
     void incrementStats(flit *t_flit);
+
+    //for task graph traffic
+    std::vector<GraphTask> task_list;
+    std::vector<int> task_in_waiting_list;
+    int waiting_list_offset;
+
+    struct _compare_task
+    {
+                bool
+    operator() (GraphTask t1, GraphTask t2)
+    {
+      return (t1.get_schedule() < t2.get_schedule());
+    }
+        } compare;
+
+    std::vector<generator_buffer_type* > generator_buffer;
+
+    int remained_execution_time;
+
+    void enqueueFlitsGeneratorBuffer(GraphEdge &, int num_flits);
+    void updateGeneratorBuffer();
 };
 
 #endif // __MEM_RUBY_NETWORK_GARNET2_0_NETWORKINTERFACE_HH__

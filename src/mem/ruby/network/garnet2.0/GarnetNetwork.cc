@@ -65,6 +65,10 @@ GarnetNetwork::GarnetNetwork(const Params *p)
     m_buffers_per_data_vc = p->buffers_per_data_vc;
     m_buffers_per_ctrl_vc = p->buffers_per_ctrl_vc;
     m_routing_algorithm = p->routing_algorithm;
+    m_task_graph_enable = p->task_graph_enable;
+    m_task_graph_file = p->task_graph_file;
+    m_token_packet_length = p->token_packet_length;
+    m_execution_iterations = p->execution_iterations;
 
     m_enable_fault_model = p->enable_fault_model;
     if (m_enable_fault_model)
@@ -141,6 +145,14 @@ GarnetNetwork::init()
             router->printFaultVector(cout);
         }
     }
+
+    //load traffic by the task graph file.
+    if (isTaskGraphEnabled()){
+            DPRINTF(TaskGraph, "Start Load Traffic !\n");
+        if (loadTraffic(m_task_graph_file))
+            DPRINTF(TaskGraph, "Load Traffic successfully !\n");
+    }
+
 }
 
 GarnetNetwork::~GarnetNetwork()
@@ -158,6 +170,7 @@ GarnetNetwork::~GarnetNetwork()
  * the Router to the NI
 */
 
+//NodeID may the NI, SwitchID may the router
 void
 GarnetNetwork::makeExtInLink(NodeID src, SwitchID dest, BasicLink* link,
                             const NetDest& routing_table_entry)
@@ -167,6 +180,7 @@ GarnetNetwork::makeExtInLink(NodeID src, SwitchID dest, BasicLink* link,
     GarnetExtLink* garnet_link = safe_cast<GarnetExtLink*>(link);
 
     // GarnetExtLink is bi-directional
+    // each link includes two link, 0 is in , 1 is out
     NetworkLink* net_link = garnet_link->m_network_links[LinkDirection_In];
     net_link->setType(EXT_IN_);
     CreditLink* credit_link = garnet_link->m_credit_links[LinkDirection_In];
@@ -177,6 +191,10 @@ GarnetNetwork::makeExtInLink(NodeID src, SwitchID dest, BasicLink* link,
     PortDirection dst_inport_dirn = "Local";
     m_routers[dest]->addInPort(dst_inport_dirn, net_link, credit_link);
     m_nis[src]->addOutPort(net_link, credit_link, dest);
+
+    for (int i=0;i<m_nodes/2;i++){
+        m_nis[i]->scheduleEventAbsolute(Cycles(1));
+    }
 }
 
 /*
@@ -457,4 +475,129 @@ GarnetNetwork::functionalWrite(Packet *pkt)
     }
 
     return num_functional_writes;
+}
+
+//for task graph traffic
+bool
+GarnetNetwork::loadTraffic(std::string filename){
+
+    int v[10];
+    float d[10];
+
+    FILE *fp=fopen(filename.c_str(), "r");
+    if (fp == NULL){
+        fatal("Error opening the task graph traffic file!");
+        return false;
+    }
+
+    //read the first line
+    //number of tasks, number of edgesm number of PUs
+    int trace_type;
+
+    //get rid of headers
+    char ts[1000];
+    for (int i=0;i<15;i++)
+    {
+        fgets(ts,1000,fp);
+    }
+
+    fscanf(fp, "%d", &trace_type);assert(0==trace_type);
+        fscanf(fp, "%d", &m_num_proc);
+        fscanf(fp, "%d", &m_num_task);
+        fscanf(fp, "%d", &m_num_edge);
+
+    assert( m_num_task>0 && m_num_edge>0 && m_num_proc>0 &&\
+    m_execution_iterations>0);
+
+    // read the next number of tasks lines: task info
+        for (int i=0; i<m_num_task; i++) {
+
+                fscanf(fp, "%d", &v[0]);    //task id
+                fscanf(fp, "%d", &v[1]);    //mapped proc id
+                fscanf(fp, "%d", &v[2]);    //shedule sequence number
+                fscanf(fp, "%f", &d[0]);    //mu & sigma for
+                fscanf(fp, "%f", &d[1]);    //task execution time distribution
+
+                // add the task to the processor
+                GraphTask t;
+                t.set_id(v[0]);
+                t.set_proc_id(v[1]);
+                t.set_schedule(v[2]);
+
+                t.set_statistical_execution_time(d[0], d[1]);
+                t.set_max_time(d[0]+2*d[1]);
+
+                t.set_required_times(m_execution_iterations);
+                t.initial();
+
+        m_nis[v[1]]->add_task(t);
+        }
+
+    // read the next number of edges lines: communication info
+        for (int i=0; i<m_num_edge; i++){
+
+                fscanf(fp, "%d", &v[0]);//edge id
+                fscanf(fp, "%d", &v[1]);//src task id
+                fscanf(fp, "%d", &v[2]);//dst task id
+                fscanf(fp, "%d", &v[3]);//src proc id
+                fscanf(fp, "%d", &v[4]);//dst proc id
+                fscanf(fp, "%d", &v[5]);//out_memory_start_address
+                fscanf(fp, "%d", &v[6]);//out_memory_size
+                fscanf(fp, "%d", &v[7]);//in_memory_start_address
+                fscanf(fp, "%d", &v[8]);//in_memory_size
+
+                //mu & sigma for token size distribution
+                fscanf(fp, "%f", &d[0]);
+                fscanf(fp, "%f", &d[1]);
+                //lambda for pk generation interval distribution
+                fscanf(fp, "%f", &d[2]);
+
+                // construct the edge
+                GraphEdge e;
+                e.set_id(v[0]);
+                e.set_src_task_id(v[1]);
+                e.set_dst_task_id(v[2]);
+                e.set_src_proc_id(v[3]);
+                e.set_dst_proc_id(v[4]);
+                e.set_out_memory(v[5],v[6]);
+                e.set_in_memory(v[7],v[8]);
+
+
+                e.set_statistical_token_size(d[0], d[1]);
+                e.set_max_token_size(d[0]+2*d[1]);
+                e.set_statistical_pkt_interval(d[2]);
+                e.initial();
+
+                GraphTask &src_task = m_nis[e.get_src_proc_id()]->\
+            get_task_by_task_id(e.get_src_task_id());
+                GraphTask &dst_task = m_nis[e.get_dst_proc_id()]->\
+            get_task_by_task_id(e.get_dst_task_id());
+
+                src_task.add_outgoing_edge(e);
+                dst_task.add_incoming_edge(e);
+        }
+
+    for (int i=0; i < m_nodes/2; i++) {
+        m_nis[i]->sort_task_list();
+        /*
+        DPRINTF(TaskGraph, " NI id %d load traffic successfully ! \
+        and my router id is %d \n",
+        m_nis[i]->get_ni_id(), m_nis[i]->get_router_id());
+        */
+    }
+
+    /*
+    unsigned int sum=0;
+    for (int i=0; i < m_nodes /2 ; i++){
+        DPRINTF(TaskGraph, " NI %d task list length %d \n",\
+         m_nis[i]->get_ni_id(), m_nis[i]->get_task_list_length());
+        sum = sum + m_nis[i]->get_task_list_length();
+        for (unsigned j=0; j<m_nis[i]->get_task_list_length(); j++){
+            DPRINTF(TaskGraph, "\t task shedule %d \n", \
+            m_nis[i]->get_task_by_offset(j).get_schedule());
+        }
+    }
+    DPRINTF(TaskGraph, "The Total task is %d\n", sum);
+    */
+    return true;
 }

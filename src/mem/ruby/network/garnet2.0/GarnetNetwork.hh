@@ -37,9 +37,11 @@
 #include <iostream>
 #include <vector>
 
+#include "debug/TaskGraph.hh"
 #include "mem/ruby/network/Network.hh"
 #include "mem/ruby/network/fault_model/FaultModel.hh"
 #include "mem/ruby/network/garnet2.0/CommonTypes.hh"
+#include "mem/ruby/network/garnet2.0/GraphTask.hh"
 #include "params/GarnetNetwork.hh"
 
 class FaultModel;
@@ -74,6 +76,12 @@ class GarnetNetwork : public Network
     bool isFaultModelEnabled() const { return m_enable_fault_model; }
     FaultModel* fault_model;
 
+    //for Task Graph
+    bool isTaskGraphEnabled() { return m_task_graph_enable; }
+    std::string getTaskGraphFilename() { return m_task_graph_file; }
+    int getTokenLenInPkt() { return m_token_packet_length; }
+
+    bool loadTraffic(std::string filename);
 
     // Internal configuration
     bool isVNetOrdered(int vnet) const { return m_ordered[vnet]; }
@@ -153,6 +161,15 @@ class GarnetNetwork : public Network
     uint32_t m_buffers_per_data_vc;
     int m_routing_algorithm;
     bool m_enable_fault_model;
+    bool m_task_graph_enable;
+    std::string m_task_graph_file;
+    int m_token_packet_length;
+
+    //for task graph
+    int m_num_proc;
+    int m_num_task;
+    int m_num_edge;
+    int m_execution_iterations;
 
     // Statistical variables
     Stats::Vector m_packets_received;

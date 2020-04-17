@@ -62,4 +62,21 @@ struct RouteInfo
 
 #define INFINITE_ 10000
 
+struct TGInfo
+{
+    int src_task;
+    int dest_task;
+    int edge_id;
+    int token_id;
+    int token_length_in_pkt;
+};
+
+struct token_info_type
+{
+        int id;
+        int length_in_pkt;
+        int received_pkt;
+};
+
+
 #endif //__MEM_RUBY_NETWORK_GARNET2_0_COMMONTYPES_HH__

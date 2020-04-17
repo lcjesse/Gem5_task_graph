@@ -47,7 +47,12 @@ class GarnetNetwork(RubyNetwork):
     enable_fault_model = Param.Bool(False, "enable network fault model");
     fault_model = Param.FaultModel(NULL, "network fault model");
     garnet_deadlock_threshold = Param.UInt32(50000,
-                              "network-level deadlock threshold")
+                              "network-level deadlock threshold");
+    task_graph_enable = Param.Bool(False, "enable the task graph traffic");
+    task_graph_file = Param.String(" ", "task graph input file");
+    token_packet_length = Param.Int(8, "task token packet length in flits");
+    execution_iterations = Param.Int(1, """number of execution iterations
+        of the real application in task graph mode""")
 
 class GarnetNetworkInterface(ClockedObject):
     type = 'GarnetNetworkInterface'

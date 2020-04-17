@@ -61,6 +61,34 @@ flit::flit(int id, int  vc, int vnet, RouteInfo route, int size,
         m_type = BODY_;
 }
 
+flit::flit(int id, int  vc, int vnet, RouteInfo route, int size,
+    MsgPtr msg_ptr, Cycles curTime, TGInfo tg)
+{
+    m_size = size;
+    m_msg_ptr = msg_ptr;
+    m_enqueue_time = curTime;
+    m_dequeue_time = curTime;
+    m_time = curTime;
+    m_id = id;
+    m_vnet = vnet;
+    m_vc = vc;
+    m_route = route;
+    m_stage.first = I_;
+    m_stage.second = m_time;
+    m_tg_info = tg;
+
+    if (size == 1) {
+        m_type = HEAD_TAIL_;
+        return;
+    }
+    if (id == 0)
+        m_type = HEAD_;
+    else if (id == (size - 1))
+        m_type = TAIL_;
+    else
+        m_type = BODY_;
+}
+
 // Flit can be printed out for debugging purposes
 void
 flit::print(std::ostream& out) const
@@ -75,6 +103,11 @@ flit::print(std::ostream& out) const
     out << "Dest NI=" << m_route.dest_ni << " ";
     out << "Dest Router=" << m_route.dest_router << " ";
     out << "Enqueue Time=" << m_enqueue_time << " ";
+    out << "Src Task=" << m_tg_info.src_task << " ";
+    out << "Dest Task=" << m_tg_info.dest_task << " ";
+    out << "Edge ID=" << m_tg_info.edge_id << " ";
+    out << "Token ID=" << m_tg_info.token_id << " ";
+    out << "Token length in packet=" << m_tg_info.token_length_in_pkt << " ";
     out << "]";
 }
 

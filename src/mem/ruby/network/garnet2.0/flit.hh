@@ -48,6 +48,9 @@ class flit
     flit(int id, int vc, int vnet, RouteInfo route, int size,
          MsgPtr msg_ptr, Cycles curTime);
 
+    flit(int id, int vc, int vnet, RouteInfo route, int size,
+         MsgPtr msg_ptr, Cycles curTime, TGInfo tg);
+
     int get_outport() {return m_outport; }
     int get_size() { return m_size; }
     Cycles get_enqueue_time() { return m_enqueue_time; }
@@ -61,6 +64,7 @@ class flit
     flit_type get_type() { return m_type; }
     std::pair<flit_stage, Cycles> get_stage() { return m_stage; }
     Cycles get_src_delay() { return src_delay; }
+    TGInfo get_tg_info() { return m_tg_info; }
 
     void set_outport(int port) { m_outport = port; }
     void set_time(Cycles time) { m_time = time; }
@@ -68,6 +72,9 @@ class flit
     void set_route(RouteInfo route) { m_route = route; }
     void set_src_delay(Cycles delay) { src_delay = delay; }
     void set_dequeue_time(Cycles time) { m_dequeue_time = time; }
+    void set_enqueue_time(Cycles time) { m_enqueue_time = time; }
+    void set_tg_info(TGInfo tg) { m_tg_info = tg; }
+    void set_num_flits(int num_flits) { m_size = num_flits; }
 
     void increment_hops() { m_route.hops_traversed++; }
     void print(std::ostream& out) const;
@@ -111,6 +118,8 @@ class flit
     int m_outport;
     Cycles src_delay;
     std::pair<flit_stage, Cycles> m_stage;
+    //Task graph related information
+    TGInfo m_tg_info;
 };
 
 inline std::ostream&
@@ -120,5 +129,12 @@ operator<<(std::ostream& out, const flit& obj)
     out << std::flush;
     return out;
 }
+
+
+struct generator_buffer_type
+{
+    int time_to_generate_flit;
+    flit *flit_to_generate;
+};
 
 #endif // __MEM_RUBY_NETWORK_GARNET2_0_FLIT_HH__
