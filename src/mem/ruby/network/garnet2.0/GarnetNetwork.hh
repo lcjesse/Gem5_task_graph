@@ -38,11 +38,13 @@
 #include <vector>
 
 #include "debug/TaskGraph.hh"
+#include "mem/ruby/common/Consumer.hh"
 #include "mem/ruby/network/Network.hh"
 #include "mem/ruby/network/fault_model/FaultModel.hh"
 #include "mem/ruby/network/garnet2.0/CommonTypes.hh"
 #include "mem/ruby/network/garnet2.0/GraphTask.hh"
 #include "params/GarnetNetwork.hh"
+#include "sim/sim_exit.hh"
 
 class FaultModel;
 class NetworkInterface;
@@ -51,7 +53,7 @@ class NetDest;
 class NetworkLink;
 class CreditLink;
 
-class GarnetNetwork : public Network
+class GarnetNetwork : public Network, public Consumer
 {
   public:
     typedef GarnetNetworkParams Params;
@@ -59,6 +61,9 @@ class GarnetNetwork : public Network
 
     ~GarnetNetwork();
     void init();
+    //add for task graph
+    void wakeup();
+    void scheduleWakeupAbsolute(Cycles time);
 
     // Configuration (set externally)
 
@@ -82,6 +87,7 @@ class GarnetNetwork : public Network
     int getTokenLenInPkt() { return m_token_packet_length; }
 
     bool loadTraffic(std::string filename);
+    bool checkApplicationFinish();
 
     // Internal configuration
     bool isVNetOrdered(int vnet) const { return m_ordered[vnet]; }

@@ -68,9 +68,11 @@ class Consumer
         m_scheduled_wakeups.insert(time);
     }
 
+  //absolute time
     void scheduleEventAbsolute(Tick timeAbs);
 
   protected:
+  //relative time
     void scheduleEvent(Cycles timeDelta);
 
   private:

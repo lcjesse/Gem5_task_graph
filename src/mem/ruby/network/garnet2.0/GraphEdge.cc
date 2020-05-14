@@ -31,7 +31,7 @@ GraphEdge::record_pkt(flit* fl)
         //same place
                 if (fl->get_route().src_ni != fl->get_route().dest_ni)
                 {
-                        assert(update_in_memory_write_pointer());
+                        //assert(update_in_memory_write_pointer());
                 }
                 token_info_type temp;
                 temp.id = fl->get_tg_info().token_id;
@@ -78,11 +78,12 @@ GraphEdge::record_sent_pkt(flit* fl)
         {
         //new token would reserve new memory, therefore,
         //we should check the buffer state of dest
-                if (in_memory_remained <= 0)
+                //if (in_memory_remained <= 0)
+                if (0)
                 {
                         return false;
                 } else { //it consumes/resevers memory immediately,
-                        assert(update_in_memory_write_pointer());
+                        //assert(update_in_memory_write_pointer());
                         token_info_type temp;
                         temp.id = fl->get_tg_info().token_id;
                         temp.length_in_pkt = fl->get_tg_info().\

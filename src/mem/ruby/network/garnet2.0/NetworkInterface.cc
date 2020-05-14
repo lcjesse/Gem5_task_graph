@@ -273,14 +273,19 @@ NetworkInterface::wakeup()
             HEAD_TAIL_) {
                 //received a pkt
                 dest_edge.record_pkt(t_flit);
-                DPRINTF(TaskGraph, " NI %d received the tail flit \
-                from the NI %d \n", m_id, t_flit->get_route().src_ni);
+                //DPRINTF(TaskGraph, " NI %d received the tail flit \
+                //from the NI %d \n", m_id, t_flit->get_route().src_ni);
 
                 sendCredit(t_flit, true);
+
+                // Update stats and delete flit pointer
+                incrementStats(t_flit);
                 delete t_flit;
             } else {
-
                 sendCredit(t_flit, false);
+
+                // Update stats and delete flit pointer.
+                incrementStats(t_flit);
                 delete t_flit;
 
             }
@@ -671,27 +676,16 @@ NetworkInterface::task_execution()
             //output buffer not ready
         }
 
-        /*
-        DPRINTF(TaskGraph, " NI %d output buffer is available ! \n",\
-        m_id);
-        */
-
         //the starting task without dependency on other tasks
         if (c_task.get_size_of_incoming_edge_list() == 0)
         {
-            DPRINTF(TaskGraph, "NI %d Task %d without dependcency\\
-            on other tasks\n",\
-            m_id, c_task.get_id());
             c_task.set_task_state(1);
             //Note here
             remained_execution_time = c_task.get_random_execution_time();
-            DPRINTF(TaskGraph, "NI %d Task %d remained execution \\
-            time is %d\n",\
-            m_id, c_task.get_id(), remained_execution_time);
-
-            DPRINTF(TaskGraph, "NI %d Task %d has %d Outgoing edges\n", m_id, \
-            c_task.get_id(),
-            c_task.get_size_of_outgoing_edge_list());
+            /*
+            DPRINTF(TaskGraph, "NI %d Task %d remained execution time \
+            is %d\n",m_id, c_task.get_id(), remained_execution_time);
+            */
 
             for (int j = 0; j < c_task.get_size_of_outgoing_edge_list(); j++)
             {
@@ -704,6 +698,7 @@ NetworkInterface::task_execution()
                 if (dest_proc_id == c_task.get_proc_id())
                 {
                     assert(dest_proc_id == m_id);
+                    /*comment because we not use in memory
                     int dest_task_id = c_task.get_outgoing_edge_by_offset(j)\
                         .get_dst_task_id();
                     int edge_id = c_task.get_outgoing_edge_by_offset(j)\
@@ -712,18 +707,23 @@ NetworkInterface::task_execution()
                     GraphEdge &in_edge = dst_task\
                         .get_incoming_edge_by_eid(edge_id);
                     assert(in_edge.update_in_memory_write_pointer());
+                    */
                 }
 
                 int num_flits = ceil((double)edge_temp\
                     .get_random_token_size() /\
                     (m_net_ptr->getNiFlitSize() * 8));
 
+                /*
                 DPRINTF(TaskGraph, "NI %d task %d excuting\n",\
-                    m_id, c_task.get_id());
+                m_id, c_task.get_id());
+                */
                 enqueueFlitsGeneratorBuffer(edge_temp, num_flits);
+               /*
                 DPRINTF(TaskGraph, "NI %d Task %d Edge %d equeue %d \
-                flits in Generator Buffer.\n",\
-                m_id, c_task.get_id(), edge_temp.get_id() ,num_flits);
+                flits in Generator Buffer.\n",m_id, c_task.get_id(), \
+                edge_temp.get_id() ,num_flits);
+                */
 
                 edge_temp.generate_new_token();
             }
@@ -746,14 +746,20 @@ NetworkInterface::task_execution()
                 //not satisied, jump to next candidate, wait next cycle
                         }
 
-            DPRINTF(TaskGraph, "NI %d task %d has received all token\n", m_id,\
-            c_task.get_id());
+           /*
+           DPRINTF(TaskGraph, "NI %d task %d has received all token\n",\
+            m_id,c_task.get_id());
+            */
 
             for (j=0;j< c_task.get_size_of_incoming_edge_list();j++){
                 GraphEdge &tempInEdge=c_task.get_incoming_edge_by_offset(j);
+                /*
+                DPRINTF(TaskGraph, "token num is %d\n", \
+                tempInEdge.get_num_incoming_token());
+                */
                 tempInEdge.consume_token();//consume the token
 
-                assert(tempInEdge.update_in_memory_read_pointer());
+                //assert(tempInEdge.update_in_memory_read_pointer());
                 int src_proc_id=tempInEdge.get_src_proc_id();
                 if (src_proc_id==c_task.get_proc_id()){
                     assert(src_proc_id==m_id);
@@ -779,21 +785,19 @@ NetworkInterface::task_execution()
                 get_dst_proc_id();
                 if (dest_proc_id==c_task.get_proc_id()){
                     assert(dest_proc_id==m_id);
+                    /*comment because we not use in_memory
                     int dest_task_id=c_task.get_outgoing_edge_by_offset(j).\
                     get_dst_task_id();
                     int edge_id=c_task.get_outgoing_edge_by_offset(j).get_id();
                     GraphTask &dst_task= get_task_by_task_id(dest_task_id);
                     GraphEdge &in_edge=dst_task.\
                     get_incoming_edge_by_eid(edge_id);
-
-                    assert(in_edge.update_in_memory_write_pointer());
+                    //assert(in_edge.update_in_memory_write_pointer());
+                    */
                 }
 
                 int num_flits = ceil((double)edge_temp\
                 .get_random_token_size() /(m_net_ptr->getNiFlitSize() * 8));
-
-                DPRINTF(TaskGraph, "NI %d excuting task %d \n",\
-                    m_id, c_task.get_id());
 
                 enqueueFlitsGeneratorBuffer(edge_temp, num_flits);
                 edge_temp.generate_new_token();
@@ -807,10 +811,13 @@ NetworkInterface::task_execution()
         remained_execution_time--;
 
         if (remained_execution_time<=0){
+        /*
         DPRINTF(TaskGraph, "NI %d Task %d remained execution time is %d\n",\
-            m_id, c_task.get_id(), remained_execution_time);
+        m_id, c_task.get_id(), remained_execution_time);
+        */
             c_task.set_task_state(0);
             remained_execution_time=0;
+
             c_task.add_completed_times();
 
             task_in_waiting_list.erase(task_in_waiting_list.begin()+\
@@ -878,10 +885,11 @@ NetworkInterface::enqueueFlitsGeneratorBuffer( GraphEdge &e, int num ){
     tg.token_id = e.get_current_token_id();
     tg.token_length_in_pkt = num_packets;
     //DPRINTF(TaskGraph,"\n");
-
-DPRINTF(TaskGraph, "NI %d Task %d Edge %d equeue %d packets \\
+/*
+DPRINTF(TaskGraph, "NI %d Task %d Edge %d equeue %d packets \
 in Generator Buffer.\n",\
                 m_id, tg.src_task, e.get_id() ,num_packets);
+*/
 
     int temp_time_to_generate = 0;
     generator_buffer_type *buffer_temp = new generator_buffer_type;
@@ -893,16 +901,19 @@ in Generator Buffer.\n",\
             num_flits = num - (num_packets-1)*m_net_ptr->getTokenLenInPkt();
             num_flits = (num_flits >= m_net_ptr->getBuffersPerDataVC())\
             ?num_flits:m_net_ptr->getBuffersPerDataVC();
-            DPRINTF(TaskGraph, " num flits = %d, buffer depth = %d\n ",\
+            /*DPRINTF(TaskGraph, " num flits = %d, buffer depth = %d\n ",\
              num_flits, m_net_ptr->getBuffersPerDataVC());
+             */
         }
 
         //vnet2 is response vnet
         flit *fl = new flit(0, -1, 2, route, num_flits, \
         msg_ptr, curCycle(), tg);
         temp_time_to_generate += e.get_random_pkt_interval();
+        /*
         DPRINTF(TaskGraph,"flit %d generate after %d cycles\n", \
         i, temp_time_to_generate);
+        */
 
         buffer_temp->flit_to_generate = fl;
         buffer_temp->time_to_generate_flit = temp_time_to_generate;
@@ -960,15 +971,19 @@ NetworkInterface::updateGeneratorBuffer(){
                 flit* generated_fl = new flit(j, vc, 2, fl->get_route(), \
                 num_flits, fl->get_msg_ptr(),curCycle(), fl->get_tg_info());
 
+                generated_fl->set_src_delay(curCycle() - fl->get_time());
+
                 m_ni_out_vcs[vc]->insert(generated_fl);
             }
 
             m_ni_out_vcs_enqueue_time[vc] = curCycle();
             m_out_vc_state[vc]->setState(ACTIVE_, curCycle());
 
-            DPRINTF(TaskGraph, " flits from NI %d Task %d inject \\
-            to vc %d to dst_ni %d \n", \
-            m_id, fl->get_tg_info().src_task, vc, fl->get_route().dest_ni);
+         /*
+         DPRINTF(TaskGraph, " flits from NI %d Task %d inject to \
+         vc %d to dst_ni %d \n", m_id, fl->get_tg_info().src_task, vc, \
+         fl->get_route().dest_ni);
+         */
 
             generator_buffer.erase(generator_buffer.begin()+i);
             i--;

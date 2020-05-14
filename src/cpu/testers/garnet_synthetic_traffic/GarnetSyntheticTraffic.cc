@@ -173,12 +173,16 @@ GarnetSyntheticTraffic::tick()
     }
 
     // Schedule wakeup
-    if (curTick() >= simCycles)
-        exitSimLoop("Network Tester completed simCycles");
-    else {
-        if (!tickEvent.scheduled())
-            schedule(tickEvent, clockEdge(Cycles(1)));
+    //In this case, if inject rate = 0, then task graph
+    if (injRate != 0){
+        if (curTick() >= simCycles)
+            exitSimLoop("Network Tester completed simCycles");
+        else {
+            if (!tickEvent.scheduled())
+                schedule(tickEvent, clockEdge(Cycles(1)));
+        }
     }
+
 }
 
 void

@@ -57,7 +57,7 @@ using m5::stl_helpers::deletePointers;
  */
 
 GarnetNetwork::GarnetNetwork(const Params *p)
-    : Network(p)
+    : Network(p), Consumer(this)
 {
     m_num_rows = p->num_rows;
     m_ni_flit_size = p->ni_flit_size;
@@ -153,6 +153,8 @@ GarnetNetwork::init()
             DPRINTF(TaskGraph, "Load Traffic successfully !\n");
     }
 
+    scheduleWakeupAbsolute(curCycle() + Cycles(1));
+    //wake up the garnet network
 }
 
 GarnetNetwork::~GarnetNetwork()
@@ -510,28 +512,27 @@ GarnetNetwork::loadTraffic(std::string filename){
     m_execution_iterations>0);
 
     // read the next number of tasks lines: task info
-        for (int i=0; i<m_num_task; i++) {
+    for (int i=0; i<m_num_task; i++) {
+        fscanf(fp, "%d", &v[0]);    //task id
+        fscanf(fp, "%d", &v[1]);    //mapped proc id
+        fscanf(fp, "%d", &v[2]);    //shedule sequence number
+        fscanf(fp, "%f", &d[0]);    //mu & sigma for
+        fscanf(fp, "%f", &d[1]);    //task execution time distribution
 
-                fscanf(fp, "%d", &v[0]);    //task id
-                fscanf(fp, "%d", &v[1]);    //mapped proc id
-                fscanf(fp, "%d", &v[2]);    //shedule sequence number
-                fscanf(fp, "%f", &d[0]);    //mu & sigma for
-                fscanf(fp, "%f", &d[1]);    //task execution time distribution
+        // add the task to the processor
+        GraphTask t;
+        t.set_id(v[0]);
+        t.set_proc_id(v[1]);
+        t.set_schedule(v[2]);
 
-                // add the task to the processor
-                GraphTask t;
-                t.set_id(v[0]);
-                t.set_proc_id(v[1]);
-                t.set_schedule(v[2]);
+        t.set_statistical_execution_time(d[0], d[1]);
+        t.set_max_time(d[0]+2*d[1]);
 
-                t.set_statistical_execution_time(d[0], d[1]);
-                t.set_max_time(d[0]+2*d[1]);
-
-                t.set_required_times(m_execution_iterations);
-                t.initial();
+        t.set_required_times(m_execution_iterations);
+        t.initial();
 
         m_nis[v[1]]->add_task(t);
-        }
+    }
 
     // read the next number of edges lines: communication info
         for (int i=0; i<m_num_edge; i++){
@@ -579,11 +580,6 @@ GarnetNetwork::loadTraffic(std::string filename){
 
     for (int i=0; i < m_nodes/2; i++) {
         m_nis[i]->sort_task_list();
-        /*
-        DPRINTF(TaskGraph, " NI id %d load traffic successfully ! \
-        and my router id is %d \n",
-        m_nis[i]->get_ni_id(), m_nis[i]->get_router_id());
-        */
     }
 
     /*
@@ -593,11 +589,55 @@ GarnetNetwork::loadTraffic(std::string filename){
          m_nis[i]->get_ni_id(), m_nis[i]->get_task_list_length());
         sum = sum + m_nis[i]->get_task_list_length();
         for (unsigned j=0; j<m_nis[i]->get_task_list_length(); j++){
-            DPRINTF(TaskGraph, "\t task shedule %d \n", \
-            m_nis[i]->get_task_by_offset(j).get_schedule());
+            DPRINTF(TaskGraph, "\t Task %d shedule %d \n", \
+            m_nis[i]->get_task_by_offset(j).get_id(),m_nis[i]->\
+            get_task_by_offset(j).get_schedule());
         }
     }
     DPRINTF(TaskGraph, "The Total task is %d\n", sum);
     */
+
+    for (unsigned j=0; j<m_nis[0]->get_task_list_length(); j++){
+            DPRINTF(TaskGraph, "Task %d shedule %d\n", m_nis[0]->\
+            get_task_by_offset(j).get_id(),m_nis[0]->\
+            get_task_by_offset(j).get_schedule());
+        }
+
+    return true;
+}
+
+void
+GarnetNetwork::wakeup(){
+    if (! checkApplicationFinish())
+    //each cycle would check finish
+        scheduleEvent(Cycles(1));
+    else {
+        exitSimLoop("Network Task Graph Simulation Complete.");
+    }
+}
+
+void
+GarnetNetwork::scheduleWakeupAbsolute(Cycles time){
+    scheduleEventAbsolute(time);
+}
+
+bool
+GarnetNetwork::checkApplicationFinish(){
+    for (int i=0;i<m_nodes/2;i++){
+        for (unsigned int j=0;j<m_nis[i]->get_task_list_length();j++){
+            GraphTask& temp_task = m_nis[i]->get_task_by_offset(j);
+            if (temp_task.get_completed_times()>=\
+            temp_task.get_required_times())
+                continue;
+            else{
+                /*
+                if (curCycle()>=330000)
+                DPRINTF(TaskGraph, "NI %d Task %d not completed\n", \
+                i, temp_task.get_id()) ;
+                */
+                return false;
+            }
+        }
+    }
     return true;
 }
