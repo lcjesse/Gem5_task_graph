@@ -290,20 +290,37 @@ SwitchAllocator::send_allowed(int inport, int invc, int outport, int outvc)
     int vnet = get_vnet(invc);
     bool has_outvc = (outvc != -1);
     bool has_credit = false;
+    //add for Ring
+    //here add vc_ch, doubt: -> or .
+    int vc_ch = m_input_unit[inport]->peekTopFlit(invc)->get_route().vc_chioce;
 
     if (!has_outvc) {
 
         // needs outvc
         // this is only true for HEAD and HEAD_TAIL flits.
 
-        if (m_output_unit[outport]->has_free_vc(vnet)) {
+        if (m_router->get_net_ptr()->getTopology() == "Ring"){
+
+            if (m_output_unit[outport]->has_free_vc(vnet, vc_ch)) {
+
+                has_outvc = true;
+
+                // each VC has at least one buffer,
+                // so no need for additional credit check
+                has_credit = true;
+            }
+        } else {
+
+            if (m_output_unit[outport]->has_free_vc(vnet)) {
 
             has_outvc = true;
 
             // each VC has at least one buffer,
             // so no need for additional credit check
             has_credit = true;
+            }
         }
+
     } else {
         has_credit = m_output_unit[outport]->has_credit(outvc);
     }
@@ -341,8 +358,14 @@ SwitchAllocator::send_allowed(int inport, int invc, int outport, int outvc)
 int
 SwitchAllocator::vc_allocate(int outport, int inport, int invc)
 {
+    int vc_ch = m_input_unit[inport]->peekTopFlit(invc)->get_route().vc_chioce;
     // Select a free VC from the output port
-    int outvc = m_output_unit[outport]->select_free_vc(get_vnet(invc));
+    //modified for Ring
+    int outvc;
+    if (m_router->get_net_ptr()->getTopology() == "Ring")
+        outvc = m_output_unit[outport]->select_free_vc(get_vnet(invc), vc_ch);
+    else
+        outvc = m_output_unit[outport]->select_free_vc(get_vnet(invc));
 
     // has to get a valid VC since it checked before performing SA
     assert(outvc != -1);

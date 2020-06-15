@@ -60,6 +60,10 @@ class OutputUnit : public Consumer
     bool has_credit(int out_vc);
     bool has_free_vc(int vnet);
     int select_free_vc(int vnet);
+    //for Ring Topology
+    bool has_free_vc(int vnet, int vc_choice);
+    int select_free_vc(int vnet, int vc_choice);
+
 
     inline PortDirection get_direction() { return m_direction; }
 

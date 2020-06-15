@@ -69,6 +69,7 @@ GarnetNetwork::GarnetNetwork(const Params *p)
     m_task_graph_file = p->task_graph_file;
     m_token_packet_length = p->token_packet_length;
     m_execution_iterations = p->execution_iterations;
+    m_topology = p->topology;
 
     m_enable_fault_model = p->enable_fault_model;
     if (m_enable_fault_model)
@@ -150,7 +151,8 @@ GarnetNetwork::init()
     if (isTaskGraphEnabled()){
             DPRINTF(TaskGraph, "Start Load Traffic !\n");
         if (loadTraffic(m_task_graph_file))
-            DPRINTF(TaskGraph, "Load Traffic successfully !\n");
+            cout<<"info: Load Traffic - "<<\
+            m_task_graph_file<<" - successfully !"<<endl;
     }
 
     scheduleWakeupAbsolute(curCycle() + Cycles(1));
@@ -595,24 +597,27 @@ GarnetNetwork::loadTraffic(std::string filename){
         }
     }
     DPRINTF(TaskGraph, "The Total task is %d\n", sum);
-    */
+
 
     for (unsigned j=0; j<m_nis[0]->get_task_list_length(); j++){
             DPRINTF(TaskGraph, "Task %d shedule %d\n", m_nis[0]->\
             get_task_by_offset(j).get_id(),m_nis[0]->\
             get_task_by_offset(j).get_schedule());
         }
+    */
 
     return true;
 }
 
 void
 GarnetNetwork::wakeup(){
-    if (! checkApplicationFinish())
-    //each cycle would check finish
-        scheduleEvent(Cycles(1));
-    else {
-        exitSimLoop("Network Task Graph Simulation Complete.");
+    if (isTaskGraphEnabled()){
+        if (! checkApplicationFinish())
+        //each cycle would check finish
+            scheduleEvent(Cycles(1));
+        else {
+            exitSimLoop("Network Task Graph Simulation Complete.");
+        }
     }
 }
 

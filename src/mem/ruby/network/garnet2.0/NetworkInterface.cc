@@ -220,18 +220,6 @@ NetworkInterface::wakeup()
         int vnet = t_flit->get_vnet();
         t_flit->set_dequeue_time(curCycle());
 
-        //task graph
-        int temp_src = t_flit->get_tg_info().src_task;
-        int temp_edge_id = t_flit->get_tg_info().edge_id;
-        int temp_task = t_flit->get_tg_info().dest_task;
-
-        GraphTask &dest_task = get_task_by_task_id(temp_task);
-        GraphEdge &dest_edge = dest_task.\
-            get_incoming_edge_by_eid(temp_edge_id);
-
-        assert(dest_edge.get_src_task_id() == temp_src);
-        //
-
         if (!m_net_ptr->isTaskGraphEnabled()){
         // If a tail flit is received, enqueue into the protocol buffers if
         // space is available. Otherwise, exchange non-tail flits for credits.
@@ -269,12 +257,27 @@ NetworkInterface::wakeup()
                 delete t_flit;
             }
         } else {
+
+            //task graph
+            int temp_src = t_flit->get_tg_info().src_task;
+            int temp_edge_id = t_flit->get_tg_info().edge_id;
+            int temp_task = t_flit->get_tg_info().dest_task;
+
+            GraphTask &dest_task = get_task_by_task_id(temp_task);
+            GraphEdge &dest_edge = dest_task.\
+                get_incoming_edge_by_eid(temp_edge_id);
+
+            assert(dest_edge.get_src_task_id() == temp_src);
+            //
+
             if (t_flit->get_type() == TAIL_ || t_flit->get_type() == \
             HEAD_TAIL_) {
                 //received a pkt
                 dest_edge.record_pkt(t_flit);
-                //DPRINTF(TaskGraph, " NI %d received the tail flit \
-                //from the NI %d \n", m_id, t_flit->get_route().src_ni);
+                /*
+                DPRINTF(TaskGraph, " NI %d received the tail flit \
+                from the NI %d \n", m_id, t_flit->get_route().src_ni);
+                */
 
                 sendCredit(t_flit, true);
 
@@ -425,6 +428,7 @@ NetworkInterface::flitisizeMessage(MsgPtr msg_ptr, int vnet)
         route.src_router = m_router_id;
         route.dest_ni = destID;
         route.dest_router = m_net_ptr->get_router_id(destID);
+        route.vc_chioce = (route.dest_router >= route.src_router);
 
         // initialize hops_traversed to -1
         // so that the first router increments it to 0
@@ -682,10 +686,6 @@ NetworkInterface::task_execution()
             c_task.set_task_state(1);
             //Note here
             remained_execution_time = c_task.get_random_execution_time();
-            /*
-            DPRINTF(TaskGraph, "NI %d Task %d remained execution time \
-            is %d\n",m_id, c_task.get_id(), remained_execution_time);
-            */
 
             for (int j = 0; j < c_task.get_size_of_outgoing_edge_list(); j++)
             {
@@ -820,6 +820,11 @@ NetworkInterface::task_execution()
 
             c_task.add_completed_times();
 
+        /*
+            DPRINTF(TaskGraph, "NI %d Task %d Execute completely !\n", \
+            m_id, c_task.get_id());
+        */
+
             task_in_waiting_list.erase(task_in_waiting_list.begin()+\
             waiting_list_offset);
 
@@ -853,8 +858,10 @@ NetworkInterface::enqueueFlitsGeneratorBuffer( GraphEdge &e, int num ){
     route.src_ni = m_id;
     route.src_router = m_router_id;
     route.dest_ni = e.get_dst_proc_id();
-    route.dest_router = route.dest_ni;
+    //route.dest_router = route.dest_ni;
+    route.dest_router = m_net_ptr->get_router_id(route.dest_ni);
     route.hops_traversed = -1;
+    route.vc_chioce = (route.dest_router >= route.src_router);
 
     //specify the destinition
     NetDest net_dest;

@@ -121,6 +121,34 @@ OutputUnit::select_free_vc(int vnet)
     return -1;
 }
 
+//add for Ring
+bool
+OutputUnit::has_free_vc(int vnet, int vc_choice)
+{
+    int vc_base = vnet*m_vc_per_vnet;
+    int vc = vc_base + vc_choice;
+    if (is_vc_idle(vc, m_router->curCycle()))//only check vc_choice
+        return true;
+    //find the vc number of its own net, for example for vnet1,
+    //vc num begin with 1*2=2 to 1*2+2==4
+    return false;
+}
+
+int
+OutputUnit::select_free_vc(int vnet, int vc_choice)
+{
+    int vc_base = vnet*m_vc_per_vnet;
+    int vc = vc_base + vc_choice;
+    if (is_vc_idle(vc, m_router->curCycle()))//only check vc_choice
+    {
+        m_outvc_state[vc]->setState(ACTIVE_, m_router->curCycle());
+        return vc;
+    }
+    //find free vc and set outvc active VIP!!!
+    //HERE we set vc vc_choice and always check if it is idle
+    return -1;
+}
+
 /*
  * The wakeup function of the OutputUnit reads the credit signal from the
  * downstream router for the output VC (i.e., input VC at downstream router).

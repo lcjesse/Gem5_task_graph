@@ -123,6 +123,7 @@ def init_network(options, network, InterfaceClass):
         network.task_graph_file = options.task_graph_file
         network.token_packet_length = options.token_packet_length
         network.execution_iterations = options.execution_iteration
+        network.topology = options.topology
 
     if options.network == "simple":
         network.setup_buffers()

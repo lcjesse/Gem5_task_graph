@@ -52,7 +52,8 @@ class GarnetNetwork(RubyNetwork):
     task_graph_file = Param.String(" ", "task graph input file");
     token_packet_length = Param.Int(8, "task token packet length in flits");
     execution_iterations = Param.Int(1, """number of execution iterations
-        of the real application in task graph mode""")
+        of the real application in task graph mode""");
+    topology = Param.String("Crossbar", "check topologies for complete set")
 
 class GarnetNetworkInterface(ClockedObject):
     type = 'GarnetNetworkInterface'

@@ -66,7 +66,7 @@ GraphTask::get_random_execution_time()
 int
 GraphTask::set_statistical_execution_time(double mu, double sigma)
 {
-        assert(mu > 0 && sigma > 0);
+        assert(mu > 0 && sigma >= 0);
         mu_time = mu;
         sigma_time = sigma;
 

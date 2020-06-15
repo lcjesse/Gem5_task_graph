@@ -106,6 +106,11 @@ GraphEdge::record_sent_pkt(flit* fl)
                 sent_token_list.erase(sent_token_list.begin() + i);
                 //at this moment, a buffer size is emptied
                 assert(update_out_memory_read_pointer());
+                /*
+                if (src_task_id==0)
+                        DPRINTF("task %d send pkt to task %d completely !\n", \
+                        src_task_id, dst_task_id);
+                */
         } else if (sent_token_list.at(i).received_pkt > \
                 sent_token_list.at(i).length_in_pkt) {
                 fatal("error receiving token");
@@ -130,7 +135,7 @@ int
 GraphEdge::set_statistical_token_size(double mu, double sigma)
 {
 
-        assert(mu > 0 && sigma > 0);
+        assert(mu > 0 && sigma >= 0);
         mu_token_size = mu;
         sigma_token_size = sigma;
 

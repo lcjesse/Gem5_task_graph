@@ -233,10 +233,53 @@ RoutingUnit::outportComputeXY(RouteInfo route,
 
 // Template for implementing custom routing algorithm
 // using port directions. (Example adaptive)
+// add the algorithm for deadlock-free Ring
 int
 RoutingUnit::outportComputeCustom(RouteInfo route,
                                  int inport,
                                  PortDirection inport_dirn)
 {
-    panic("%s placeholder executed", __FUNCTION__);
+    PortDirection outport_dirn = "Unknown";
+
+    int num_routers = m_router->get_net_ptr()->getNumRouters();
+    assert(num_routers > 0);
+    int M5_VAR_USED num_rows = m_router->get_net_ptr()->getNumRows();
+    int num_cols = m_router->get_net_ptr()->getNumCols();
+    assert(num_rows > 0 && num_cols > 0);
+
+    int my_id = m_router->get_id();
+    int my_x = my_id % num_cols;
+    int my_y = my_id / num_cols;
+
+    int dest_id = route.dest_router;
+    int dest_x = dest_id % num_cols;
+    int dest_y = dest_id / num_cols;
+
+    int x_hops = dest_x - my_x;
+    int y_hops = dest_y - my_y;
+
+    //int hops = dest_x - my_x;
+    assert(!(x_hops == 0 && y_hops == 0));
+    //always follow shortest path
+    if (((x_hops > 0) && (x_hops <= num_cols/2)) || (x_hops < -num_cols/2))
+    {
+        //printf("%d\t",inport);
+        assert(inport_dirn == "Local" || inport_dirn == "West" || \
+    inport_dirn == "North" || inport_dirn == "South");
+        outport_dirn = "East";
+    }
+    else if (((x_hops >= -num_cols/2) && (x_hops < 0)) || \
+    (x_hops > num_cols/2))
+    {
+        //printf("%d\t",inport);
+        assert(inport_dirn == "Local" || inport_dirn == "East" || \
+    inport_dirn == "North" || inport_dirn == "South");
+        outport_dirn = "West";
+    } else
+    //impossible because already checked in outportCompute()
+    panic("hops == 0");
+
+
+    return m_outports_dirn2idx[outport_dirn];
+    //panic("%s placeholder executed", __FUNCTION__);
 }

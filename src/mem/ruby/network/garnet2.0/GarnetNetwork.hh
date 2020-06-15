@@ -89,6 +89,9 @@ class GarnetNetwork : public Network, public Consumer
     bool loadTraffic(std::string filename);
     bool checkApplicationFinish();
 
+    //for Ring Topology
+    std::string getTopology() { return m_topology; }
+
     // Internal configuration
     bool isVNetOrdered(int vnet) const { return m_ordered[vnet]; }
     VNET_type
@@ -170,6 +173,7 @@ class GarnetNetwork : public Network, public Consumer
     bool m_task_graph_enable;
     std::string m_task_graph_file;
     int m_token_packet_length;
+    std::string m_topology;
 
     //for task graph
     int m_num_proc;

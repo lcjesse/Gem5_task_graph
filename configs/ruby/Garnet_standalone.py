@@ -100,6 +100,7 @@ def create_system(options, full_system, system, dma_ports, bootmem,
         l1_cntrl.responseFromCache = MessageBuffer()
         l1_cntrl.forwardFromCache = MessageBuffer()
 
+    #return dir_ctrl and None
     mem_dir_cntrl_nodes, rom_dir_cntrl_node = create_directories(
         options, bootmem, ruby_system, system)
     dir_cntrl_nodes = mem_dir_cntrl_nodes[:]
