@@ -468,9 +468,11 @@ NetworkInterface::calculateVC(int vnet)
     }
 
     vc_busy_counter[vnet] += 1;
+    /*
     panic_if(vc_busy_counter[vnet] > m_deadlock_threshold,
         "%s: Possible network deadlock in vnet: %d at time: %llu \n",
         name(), vnet, curTick());
+    */
 
     return -1;
 }
@@ -899,7 +901,7 @@ in Generator Buffer.\n",\
 */
 
     int temp_time_to_generate = 0;
-    generator_buffer_type *buffer_temp = new generator_buffer_type;
+    //generator_buffer_type *buffer_temp = new generator_buffer_type;
     for (int i = 0; i < num_packets; i++)
     {
         int num_flits = m_net_ptr->getTokenLenInPkt();
@@ -917,11 +919,15 @@ in Generator Buffer.\n",\
         flit *fl = new flit(0, -1, 2, route, num_flits, \
         msg_ptr, curCycle(), tg);
         temp_time_to_generate += e.get_random_pkt_interval();
-        /*
-        DPRINTF(TaskGraph,"flit %d generate after %d cycles\n", \
-        i, temp_time_to_generate);
-        */
+        //use enqueue time as the time it should have been sent, for the src
+        //delay in queue latency
+        fl->set_enqueue_time(curCycle() + Cycles(temp_time_to_generate - 1));
+        DPRINTF(TaskGraph,\
+        "NI %d flit %d generate after %d cycles in Cycle [%lu]\n", m_id,\
+        i, temp_time_to_generate, \
+        u_int64_t(curCycle() + Cycles(temp_time_to_generate - 1)));
 
+        generator_buffer_type *buffer_temp = new generator_buffer_type;
         buffer_temp->flit_to_generate = fl;
         buffer_temp->time_to_generate_flit = temp_time_to_generate;
         generator_buffer.push_back( buffer_temp );
@@ -932,17 +938,17 @@ void
 NetworkInterface::updateGeneratorBuffer(){
     for (unsigned int i=0;i<generator_buffer.size();i++){
         generator_buffer.at(i)->time_to_generate_flit--;
-        /*
-        DPRINTF(TaskGraph,"Generator buffer flit %d generate after
-        %d cycles\n"\
-        ,i, generator_buffer.at(i)->time_to_generate_flit);
-        */
+
+        DPRINTF(TaskGraph,"NI %d Generator buffer flit %d \
+        generate after %d cycles\n", \
+        m_id, i, generator_buffer.at(i)->time_to_generate_flit);
+
 
         if (generator_buffer.at(i)->time_to_generate_flit<=0){
             //the head flit
             flit *fl = generator_buffer.at(i)->flit_to_generate;
 
-            //if the dest core is the same coe
+            //if the dest core is the same core
             if (fl->get_route().src_ni == fl->get_route().dest_ni){
                 assert(fl->get_route().dest_ni == m_id);
 
@@ -978,7 +984,10 @@ NetworkInterface::updateGeneratorBuffer(){
                 flit* generated_fl = new flit(j, vc, 2, fl->get_route(), \
                 num_flits, fl->get_msg_ptr(),curCycle(), fl->get_tg_info());
 
-                generated_fl->set_src_delay(curCycle() - fl->get_time());
+                DPRINTF(TaskGraph, "NI %d Flit should send time in %lu\n",\
+                 m_id, uint64_t(fl->get_enqueue_time()));
+                generated_fl->set_src_delay(curCycle() - \
+                fl->get_enqueue_time());
 
                 m_ni_out_vcs[vc]->insert(generated_fl);
             }
