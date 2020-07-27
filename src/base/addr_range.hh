@@ -130,9 +130,10 @@ class AddrRange
           intlvMatch(_intlv_match)
     {
         // sanity checks
-        fatal_if(!masks.empty() && _intlv_match >= ULL(1) << masks.size(),
-                 "Match value %d does not fit in %d interleaving bits\n",
-                 _intlv_match, masks.size());
+        // commented by Wang Jing, for Ring topology with random node number
+        //fatal_if(!masks.empty() && _intlv_match >= ULL(1) << masks.size(),
+        //         "Match value %d does not fit in %d interleaving bits\n",
+        //         _intlv_match, masks.size());
     }
 
     /**
@@ -221,9 +222,10 @@ class AddrRange
         // interleaved range
         if (ranges.size() > 1) {
 
-            if (ranges.size() != (ULL(1) << masks.size()))
-                fatal("Got %d ranges spanning %d interleaving bits\n",
-                      ranges.size(), masks.size());
+            // commented by Wang Jing, for Ring topology with random node number
+            //if (ranges.size() != (ULL(1) << masks.size()))
+            //    fatal("Got %d ranges spanning %d interleaving bits\n",
+            //          ranges.size(), masks.size());
 
             uint8_t match = 0;
             for (const auto& r : ranges) {

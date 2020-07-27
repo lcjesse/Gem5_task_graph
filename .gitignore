@@ -36,3 +36,5 @@ my_STATS
 *.log
 gem5.code-workspace
 .gitignore
+/my_scripts/**/*.png
+/my_benchmarks/*.stp

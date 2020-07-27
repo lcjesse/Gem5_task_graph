@@ -77,15 +77,28 @@ class NetworkInterface : public ClockedObject, public Consumer
     //for task graph traffic
     int add_task(GraphTask &t);
     int	sort_task_list();
-    int get_task_offset_by_task_id(int tid);
-    GraphTask& get_task_by_task_id(int tid);
+    int get_task_offset_by_task_id(int core_id, int tid);
+    GraphTask& get_task_by_task_id(int core_id, int tid);
     NodeID get_ni_id() { return m_id; }
-    unsigned int get_task_list_length() { return task_list.size(); }
-    GraphTask& get_task_by_offset(int i){ return task_list[i]; }
+    unsigned int get_task_list_length(int idx) { return task_list[idx].size(); }
+    GraphTask& get_task_by_offset(int core_id, int i){
+      int idx = lookUpMap(m_core_id_index, core_id);
+      return task_list[idx][i];
+    }
+    //muilt core
+    int get_core_id_by_task_id(int tid);
+    int get_num_cores(){ return m_num_cores; }
+    int get_core_id_by_index(int i);
+    std::string get_core_name_by_index(int i);
 
     void task_execution();
 
-
+    //for construct architecture in tg mode
+    bool configureNode(int num_cores, int* core_id, \
+    std::string* core_name, int* num_threads);
+    void printNodeConfiguation();
+    int lookUpMap(std::map<int, int> m, int idx);
+    
   private:
     GarnetNetwork *m_net_ptr;
     const NodeID m_id;
@@ -130,9 +143,27 @@ class NetworkInterface : public ClockedObject, public Consumer
     void incrementStats(flit *t_flit);
 
     //for task graph traffic
-    std::vector<GraphTask> task_list;
-    std::vector<int> task_in_waiting_list;
-    int waiting_list_offset;
+    //task_list in each core
+    std::vector<std::vector<GraphTask> > task_list;
+    std::vector<std::vector<int> > task_in_waiting_list;
+    std::vector<int> waiting_list_offset;
+
+    //for construct architecture in tg mode
+    int m_num_cores;
+    std::map<int, int> m_index_core_id;
+    std::map<int, int> m_core_id_index; //core_id -> task list index
+    std::map<int, std::string> m_core_id_name; //core_id -> core name
+    std::map<int, int> m_core_id_thread;//core_id -> num_threads
+
+    //buffer for each core and 
+    //for inter-cluster and intra-cluster communication
+    std::vector<std::vector<flit* > > core_buffer;
+    std::vector<bool > crossbar_busy_out;
+    std::vector<int > crossbar_delay_timer;
+    std::vector<std::vector<flit* > > crossbar_data;
+    int core_buffer_round_robin;
+    const int crossbar_delay = 2;
+
 
     struct _compare_task
     {
@@ -143,12 +174,16 @@ class NetworkInterface : public ClockedObject, public Consumer
     }
         } compare;
 
-    std::vector<generator_buffer_type* > generator_buffer;
+    //Generator Buffer for each Core, can be considered as the running Core
+    std::vector< std::vector<generator_buffer_type* >> generator_buffer;
 
-    int remained_execution_time;
+    //remained execution time in each core
+    std::vector<int> remained_execution_time;
 
     void enqueueFlitsGeneratorBuffer(GraphEdge &, int num_flits);
     void updateGeneratorBuffer();
+
+    void coreSendFlitsOut();
 };
 
 #endif // __MEM_RUBY_NETWORK_GARNET2_0_NETWORKINTERFACE_HH__

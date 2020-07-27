@@ -88,6 +88,10 @@ class GarnetNetwork : public Network, public Consumer
 
     bool loadTraffic(std::string filename);
     bool checkApplicationFinish();
+    //for construct architecture in task graph mode
+    bool constructArchitecture(std::string filename);
+    int getNodeIdbyCoreId(int core_id);
+
 
     //for Ring Topology
     std::string getTopology() { return m_topology; }
@@ -174,12 +178,15 @@ class GarnetNetwork : public Network, public Consumer
     std::string m_task_graph_file;
     int m_token_packet_length;
     std::string m_topology;
+    std::string m_architecture_file;
 
     //for task graph
     int m_num_proc;
     int m_num_task;
     int m_num_edge;
     int m_execution_iterations;
+    //for construct architecture in task graph mode
+    std::map<int, int> m_core_id_node_id; //core_id -> node_id
 
     // Statistical variables
     Stats::Vector m_packets_received;

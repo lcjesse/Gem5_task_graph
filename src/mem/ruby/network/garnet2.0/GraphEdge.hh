@@ -108,6 +108,7 @@ public:
                 return true;
         }
         int get_out_memory_remained() { return out_memory_remained; }
+        int get_out_memory_size() { return out_memory_size; }
 
         void
         set_in_memory(int a, int b)

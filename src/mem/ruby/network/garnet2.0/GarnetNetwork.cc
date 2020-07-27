@@ -70,6 +70,7 @@ GarnetNetwork::GarnetNetwork(const Params *p)
     m_token_packet_length = p->token_packet_length;
     m_execution_iterations = p->execution_iterations;
     m_topology = p->topology;
+    m_architecture_file = p->architecture_file;
 
     m_enable_fault_model = p->enable_fault_model;
     if (m_enable_fault_model)
@@ -147,12 +148,30 @@ GarnetNetwork::init()
         }
     }
 
-    //load traffic by the task graph file.
+    // Task Graph Intinalization
     if (isTaskGraphEnabled()){
-            DPRINTF(TaskGraph, "Start Load Traffic !\n");
+        //Construct Nodes
+        DPRINTF(TaskGraph, "Start Construct Nodes !\n");
+        if(constructArchitecture(m_architecture_file))
+            cout<<"info: Construct Node -"<<m_architecture_file<<\
+            " - successfully !"<<endl;
+        
+        //Print Node Configuration Information
+        if(true){
+            cout<<"\n";
+            for(int i=0;i<m_nodes/2;i++)
+                m_nis[i]->printNodeConfiguation();
+            cout<<"\n";
+        }
+
+        //load traffic by the task graph file.
+        DPRINTF(TaskGraph, "Start Load Traffic !\n");
         if (loadTraffic(m_task_graph_file))
             cout<<"info: Load Traffic - "<<\
             m_task_graph_file<<" - successfully !"<<endl;
+
+
+
     }
 
     scheduleWakeupAbsolute(curCycle() + Cycles(1));
@@ -495,7 +514,7 @@ GarnetNetwork::loadTraffic(std::string filename){
     }
 
     //read the first line
-    //number of tasks, number of edgesm number of PUs
+    //number of tasks, number of edges, number of PUs
     int trace_type;
 
     //get rid of headers
@@ -533,7 +552,8 @@ GarnetNetwork::loadTraffic(std::string filename){
         t.set_required_times(m_execution_iterations);
         t.initial();
 
-        m_nis[v[1]]->add_task(t);
+        int current_node_id = getNodeIdbyCoreId(v[1]);
+        m_nis[current_node_id]->add_task(t);
     }
 
     // read the next number of edges lines: communication info
@@ -571,10 +591,13 @@ GarnetNetwork::loadTraffic(std::string filename){
                 e.set_statistical_pkt_interval(d[2]);
                 e.initial();
 
-                GraphTask &src_task = m_nis[e.get_src_proc_id()]->\
-            get_task_by_task_id(e.get_src_task_id());
-                GraphTask &dst_task = m_nis[e.get_dst_proc_id()]->\
-            get_task_by_task_id(e.get_dst_task_id());
+                int src_node_id = getNodeIdbyCoreId(e.get_src_proc_id());
+                GraphTask &src_task = m_nis[src_node_id]->\
+            get_task_by_task_id(e.get_src_proc_id(), e.get_src_task_id());
+                
+                int dst_node_id = getNodeIdbyCoreId(e.get_dst_proc_id());
+                GraphTask &dst_task = m_nis[dst_node_id]->\
+            get_task_by_task_id(e.get_dst_proc_id(), e.get_dst_task_id());
 
                 src_task.add_outgoing_edge(e);
                 dst_task.add_incoming_edge(e);
@@ -584,21 +607,40 @@ GarnetNetwork::loadTraffic(std::string filename){
         m_nis[i]->sort_task_list();
     }
 
-    /*
+
     unsigned int sum=0;
+    printf("**********************\n");
+    printf("**********************\n");
+    printf("Traffic Information\n");
     for (int i=0; i < m_nodes /2 ; i++){
-        DPRINTF(TaskGraph, " NI %d task list length %d \n",\
-         m_nis[i]->get_ni_id(), m_nis[i]->get_task_list_length());
-        sum = sum + m_nis[i]->get_task_list_length();
-        for (unsigned j=0; j<m_nis[i]->get_task_list_length(); j++){
-            DPRINTF(TaskGraph, "\t Task %d shedule %d \n", \
-            m_nis[i]->get_task_by_offset(j).get_id(),m_nis[i]->\
-            get_task_by_offset(j).get_schedule());
+        int num_cores_in_node = m_nis[i]->get_num_cores();
+        printf("**********************\n");
+        printf("Node %d with %d Cores\n",\
+            m_nis[i]->get_ni_id(), num_cores_in_node);
+        printf("**********************\n");
+
+        for(int j=0;j<num_cores_in_node;j++){
+            int core_id = m_nis[i]->get_core_id_by_index(j);
+            int task_list_len = m_nis[i]->get_task_list_length(j);
+            printf("Core Index: %5d\tCore Id: %5d\tCore Name: %7s\tTask List Length: %5d\n", \
+                j, m_nis[i]->get_core_id_by_index(j), \
+                m_nis[i]->get_core_name_by_index(j).c_str(), task_list_len);
+
+            for(int k=0;k<task_list_len;k++){
+                GraphTask &t = m_nis[i]->get_task_by_offset(core_id, k);
+                printf("\tTask %5d\tshedule %5d\n",\
+                    t.get_id(), t.get_schedule());
+            }
+            
+            sum = sum + task_list_len;
         }
+
+        printf("\n");
     }
-    DPRINTF(TaskGraph, "The Total task is %d\n", sum);
+    printf("The Total task is %d\n\n", sum);
 
-
+    //Core[0] task schdule
+    /*
     for (unsigned j=0; j<m_nis[0]->get_task_list_length(); j++){
             DPRINTF(TaskGraph, "Task %d shedule %d\n", m_nis[0]->\
             get_task_by_offset(j).get_id(),m_nis[0]->\
@@ -628,21 +670,113 @@ GarnetNetwork::scheduleWakeupAbsolute(Cycles time){
 
 bool
 GarnetNetwork::checkApplicationFinish(){
+    
+    /*
     for (int i=0;i<m_nodes/2;i++){
-        for (unsigned int j=0;j<m_nis[i]->get_task_list_length();j++){
-            GraphTask& temp_task = m_nis[i]->get_task_by_offset(j);
-            if (temp_task.get_completed_times()>=\
-            temp_task.get_required_times())
-                continue;
-            else{
-                /*
-                if (curCycle()>=330000)
-                DPRINTF(TaskGraph, "NI %d Task %d not completed\n", \
-                i, temp_task.get_id()) ;
-                */
-                return false;
+        int num_cores_in_node = m_nis[i]->get_num_cores();
+        for(int j=0;j<num_cores_in_node;j++){
+            int task_list_len = m_nis[i]->get_task_list_length(j);
+            int core_id = m_nis[i]->get_core_id_by_index(j);
+            if(curCycle()>=88000){
+                for(int k=0;k<task_list_len;k++){
+                GraphTask& temp_task = m_nis[i]->get_task_by_offset(core_id, k);
+                printf("Core [%5d] Task [%3d] completed execution times %2d\n", core_id, temp_task.get_id(), temp_task.get_completed_times());
+                }
+            }
+        }
+    }
+    */
+
+    for (int i=0;i<m_nodes/2;i++){
+
+        int num_cores_in_node = m_nis[i]->get_num_cores();
+
+        for(int j=0;j<num_cores_in_node;j++){
+
+            int task_list_len = m_nis[i]->get_task_list_length(j);
+            int core_id = m_nis[i]->get_core_id_by_index(j);
+
+            for(int k=0;k<task_list_len;k++){
+                GraphTask& temp_task = m_nis[i]->get_task_by_offset(core_id, k);
+                if (temp_task.get_completed_times()>=\
+                    temp_task.get_required_times())
+                    continue;
+                else{
+                    /*
+                    if(curCycle()>=88000)
+                        DPRINTF(TaskGraph, "Node [ %5d ] Core [ %5d ] Task [ %5d ] not completed ! \n", \
+                            i, m_nis[i]->get_core_id_by_index(j), temp_task.get_id());
+                            */
+                    return false;
+                }
             }
         }
     }
     return true;
+}
+
+bool
+GarnetNetwork::constructArchitecture(std::string filename){
+
+    FILE *fp=fopen(filename.c_str(), "r");
+    if (fp == NULL){
+        fatal("Error opening the architecture file!");
+        return false;
+    }
+
+    int num_nodes;//total nodes in soc
+    fscanf(fp, "%d", &num_nodes);
+    assert(num_nodes==m_nodes/2);
+
+    int node_id;
+    int num_cores_in_node;
+    int sum_cores = 0;
+    for(int i=0;i<num_nodes;i++){
+        fscanf(fp, "%d", &node_id);
+        fscanf(fp, "%d", &num_cores_in_node);
+
+        int* core_id = new int[num_cores_in_node];
+        std::string* core_name = new std::string[num_cores_in_node];
+        int* core_thread = new int[num_cores_in_node];
+        sum_cores += num_cores_in_node;
+
+        for(int j=0;j<num_cores_in_node;j++){
+            char* _core_name = new char;
+
+            fscanf(fp, "%d", &core_id[j]);
+            fscanf(fp, "%s", _core_name);
+            core_name[j] = _core_name;
+            fscanf(fp, "%d", &core_thread[j]);
+
+            m_core_id_node_id.insert(make_pair(core_id[j], i));
+        }
+
+        if(!m_nis[i]->configureNode(num_cores_in_node, core_id, core_name, \
+                core_thread))
+            return false;
+    }
+
+    assert(m_core_id_node_id.size()==sum_cores);
+
+    //print core map to node
+    printf("**********************\n");
+    printf("Core ID -> Node ID\n");
+    cout<<"\n";
+    for(map<int,int>::iterator iter=m_core_id_node_id.begin();\
+        iter!=m_core_id_node_id.end();iter++)
+        cout<<iter->first<<"\t"<<iter->second<<"\n";
+    cout<<endl;
+    printf("**********************\n");
+
+    return true;
+}
+
+// because of cluster, one node with several cores
+int 
+GarnetNetwork::getNodeIdbyCoreId(int core_id){
+    map<int, int>::iterator iter = m_core_id_node_id.find(core_id);
+    if(iter == m_core_id_node_id.end())
+        fatal("GarnetNetwork: Error in finding Node Id by Core Id !");
+    else
+        return(m_core_id_node_id[core_id]);
 }

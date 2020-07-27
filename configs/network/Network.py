@@ -55,6 +55,8 @@ def define_options(parser):
     parser.add_option("--execution-iteration", type="int", default=1,
                        help="""number of execution iterations of the real
                             application in task graph mode.""")
+    parser.add_option("--architecture-file", type="string", default=" ",
+                       help="specify the filename, construct the architecture")
     parser.add_option("--router-latency", action="store", type="int",
                       default=1,
                       help="""number of pipeline stages in the garnet router.
@@ -124,6 +126,7 @@ def init_network(options, network, InterfaceClass):
         network.token_packet_length = options.token_packet_length
         network.execution_iterations = options.execution_iteration
         network.topology = options.topology
+        network.architecture_file = options.architecture_file
 
     if options.network == "simple":
         network.setup_buffers()
