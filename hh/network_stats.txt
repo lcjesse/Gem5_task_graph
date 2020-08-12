@@ -1,0 +1,5 @@
+
+packets_received = 7286                      
+average_packet_latency = 1330.174444                      
+flits_received = 40421                      
+average_flit_latency = 1267.030504                      

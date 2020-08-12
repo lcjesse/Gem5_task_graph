@@ -50,11 +50,15 @@ public:
 
         int get_required_times() { return required_times; }
 
+        int get_c_e_times() {return c_e_times;}
+        void add_c_e_times() { c_e_times++;}
+
         void
         initial()
         {
                 completed_times = 0;
                 task_state = 0;
+                c_e_times = 0;
                 return;
         }
 
@@ -68,6 +72,11 @@ public:
                 return;
         }
         int get_task_state() { return task_state; }
+        void record_execution_time(int start, int end){
+                start_time.push_back(start);end_time.push_back(end);
+        }
+        int get_start_time(int i){return start_time.at(i);}
+        int get_end_time(int i){return end_time.at(i);}
 
 private:
         // the statistical task executions follow Gaussian distribution
@@ -91,6 +100,11 @@ private:
         int required_times;
 
         int task_state;
+        std::vector<int> start_time;
+        std::vector<int> end_time;
+
+        //the times completed or executing
+        int c_e_times;
 };
 
 

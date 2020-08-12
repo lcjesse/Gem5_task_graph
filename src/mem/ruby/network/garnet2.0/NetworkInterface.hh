@@ -91,6 +91,7 @@ class NetworkInterface : public ClockedObject, public Consumer
     int get_core_id_by_index(int i);
     std::string get_core_name_by_index(int i);
 
+    void enqueueTaskInThreadQueue();
     void task_execution();
 
     //for construct architecture in tg mode
@@ -98,7 +99,7 @@ class NetworkInterface : public ClockedObject, public Consumer
     std::string* core_name, int* num_threads);
     void printNodeConfiguation();
     int lookUpMap(std::map<int, int> m, int idx);
-    
+
   private:
     GarnetNetwork *m_net_ptr;
     const NodeID m_id;
@@ -147,6 +148,11 @@ class NetworkInterface : public ClockedObject, public Consumer
     std::vector<std::vector<GraphTask> > task_list;
     std::vector<std::vector<int> > task_in_waiting_list;
     std::vector<int> waiting_list_offset;
+    //thread_queue[num_cores][num_threads]
+    int** task_in_thread_queue;
+    int** remained_execution_time_in_thread;
+    bool** thread_busy_flag;
+    std::vector<int> task_to_exec_round_robin;
 
     //for construct architecture in tg mode
     int m_num_cores;
@@ -155,7 +161,7 @@ class NetworkInterface : public ClockedObject, public Consumer
     std::map<int, std::string> m_core_id_name; //core_id -> core name
     std::map<int, int> m_core_id_thread;//core_id -> num_threads
 
-    //buffer for each core and 
+    //buffer for each core and
     //for inter-cluster and intra-cluster communication
     std::vector<std::vector<flit* > > core_buffer;
     std::vector<bool > crossbar_busy_out;

@@ -185,6 +185,9 @@ class GarnetNetwork : public Network, public Consumer
     int m_num_task;
     int m_num_edge;
     int m_execution_iterations;
+    std::vector<double> task_start_time;
+    std::vector<double> task_end_time;
+    std::vector<int> ETE_delay;
     //for construct architecture in task graph mode
     std::map<int, int> m_core_id_node_id; //core_id -> node_id
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-./build/NULL/gem5.debug --debug-flags=TaskGraph \
+./build/NULL/gem5.debug  \
 --outdir hh \
 configs/example/garnet_synth_traffic.py \
 --topology=Ring \
@@ -11,9 +11,11 @@ configs/example/garnet_synth_traffic.py \
 --injectionrate=0 \
 --token-packet-length=6 \
 --network-task-graph-enable \
---task-graph-file="./my_benchmarks/CMP-0726/h263e_mesh_4x4_1.stp" \
+--task-graph-file="./my_benchmarks/CMP-0726/h263e_mesh_4x4.stp" \
 --execution-iteration=2 \
 --routing-algorithm=2 \
 --vcs-per-vnet=2 \
---architecture-file="./my_benchmarks/CMP-0726/Heterogeneous_SoC_with_Ring_Topology_16.arch"
+--architecture-file="./my_benchmarks/CMP-0726/Heterogeneous_SoC_with_Ring_Topology_16.arch" \
+#--ruby-clock=2GHz
+#--sys-clock=2GHz
 # --debug-flags=TaskGraph
