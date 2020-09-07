@@ -752,18 +752,19 @@ NetworkInterface::enqueueTaskInThreadQueue()
             //the starting task without dependency on other tasks
             if (c_task.get_size_of_incoming_edge_list() == 0){
                 //add task to thread queue
-
+/*
                 if (current_core_id==0){
                         printf("Core %d task %d start executing\n", \
                         current_core_id, c_task.get_id());
                         printf("Task in executing list: ");
                         for (unsigned iii=0;iii<num_threads;iii++){
                             if (thread_busy_flag[i][iii])
-                                printf("%d\t", task_in_thread_queue[i][iii]);
+                                printf("Thread %d busy\t%d\t", iii ,\
+                                    task_in_thread_queue[i][iii]);
                         }
                         printf("\n");
                 }
-
+*/
                 c_task.add_c_e_times();
                 task_in_thread_queue[i][not_busy_idx] = c_task.get_id();
                 thread_busy_flag[i][not_busy_idx] = true;
@@ -824,7 +825,7 @@ NetworkInterface::enqueueTaskInThreadQueue()
                         assert(out_edge.update_out_memory_read_pointer());
                     }
                 }
-
+/*
                 if (current_core_id==0){
                         printf("Core %d task %d start executing\n", \
                         current_core_id, c_task.get_id());
@@ -835,7 +836,7 @@ NetworkInterface::enqueueTaskInThreadQueue()
                         }
                         printf("\n");
                 }
-
+*/
                 c_task.add_c_e_times();
                 task_in_thread_queue[i][not_busy_idx] = c_task.get_id();
                 thread_busy_flag[i][not_busy_idx] = true;

@@ -31,11 +31,8 @@ m5out
 open_benchmarks
 my_STATS
 .vscode
-*.sh
-!/my_scripts/*sh
 *.log
 gem5.code-workspace
 .gitignore
 /my_scripts/**/*.png
-/my_benchmarks/*.stp
 my_scripts/old_task_execution.cc
