@@ -434,6 +434,14 @@ GarnetNetwork::regStats()
         .name(name() + ".avg_vc_load")
         .flags(Stats::pdf | Stats::total | Stats::nozero | Stats::oneline)
         ;
+
+    //add for TG
+    m_avg_ete_delay
+        .name(name() + ".average_application_ete_dalay");
+
+    m_ex_iters
+        .name(name() + ".application_execution_iteration_times");
+
 }
 
 void
@@ -683,6 +691,8 @@ GarnetNetwork::wakeup(){
                 Average_ETE_delay=Average_ETE_delay+max_time-min_time;
             }
             Average_ETE_delay = Average_ETE_delay / m_execution_iterations;
+            m_avg_ete_delay = Average_ETE_delay;
+            m_ex_iters = m_execution_iterations;
 
             cout<<"info: Application - "<<\
             m_task_graph_file<<" - has executed successfully !\n";
@@ -789,13 +799,13 @@ GarnetNetwork::constructArchitecture(std::string filename){
             core_name[j] = _core_name;
             fscanf(fp, "%d", &core_thread[j]);
 
-            m_core_id_node_id.insert(make_pair(core_id[j], i));
+            m_core_id_node_id.insert(make_pair(core_id[j], node_id));
 
             delete _core_name;
         }
 
-        if (!m_nis[i]->configureNode(num_cores_in_node, core_id, core_name, \
-                core_thread))
+        if (!m_nis[node_id]->configureNode(num_cores_in_node, \
+            core_id, core_name, core_thread))
             return false;
 
         delete [] core_id;

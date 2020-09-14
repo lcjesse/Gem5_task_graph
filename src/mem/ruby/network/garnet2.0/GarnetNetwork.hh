@@ -223,6 +223,10 @@ class GarnetNetwork : public Network, public Consumer
     Stats::Scalar  m_total_hops;
     Stats::Formula m_avg_hops;
 
+    //add for TG
+    Stats::Scalar m_avg_ete_delay;
+    Stats::Scalar m_ex_iters;
+
   private:
     GarnetNetwork(const GarnetNetwork& obj);
     GarnetNetwork& operator=(const GarnetNetwork& obj);

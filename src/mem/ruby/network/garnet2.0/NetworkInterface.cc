@@ -790,7 +790,8 @@ NetworkInterface::enqueueTaskInThreadQueue()
                     get_random_token_size() / \
                     (m_net_ptr->getNiFlitSize() * 8));
 
-                    enqueueFlitsGeneratorBuffer(temp_edge, num_flits);
+                    enqueueFlitsGeneratorBuffer(temp_edge, num_flits, \
+                        execution_time);
 
                     temp_edge.generate_new_token();
                 }
@@ -862,7 +863,8 @@ NetworkInterface::enqueueTaskInThreadQueue()
                     get_random_token_size() / \
                     (m_net_ptr->getNiFlitSize() * 8));
 
-                    enqueueFlitsGeneratorBuffer(temp_edge, num_flits);
+                    enqueueFlitsGeneratorBuffer(temp_edge, num_flits, \
+                        execution_time);
                     temp_edge.generate_new_token();
                 }
             }
@@ -900,9 +902,11 @@ NetworkInterface::task_execution()
 }
 
 void
-NetworkInterface::enqueueFlitsGeneratorBuffer( GraphEdge &e, int num ){
+NetworkInterface::enqueueFlitsGeneratorBuffer( GraphEdge &e, int num, \
+int task_execution_time ){
 //actually enqueue the head flit in the Buffer, if triggerred, the Buffer
 //generate the body flits, so Generator Buffer is acted as the Core.
+//would add remained execution time as parameter
 
     int current_core_id = e.get_src_proc_id();
     int dst_core_id = e.get_dst_proc_id();
@@ -972,6 +976,8 @@ in Generator Buffer.\n",\
         flit *fl = new flit(0, -1, 2, route, num_flits, \
         msg_ptr, curCycle(), tg);
         temp_time_to_generate += e.get_random_pkt_interval();
+        if (temp_time_to_generate >= task_execution_time)
+            temp_time_to_generate = task_execution_time;
         //use enqueue time as the time it should have been sent, for the src
         //delay in queue latency
         fl->set_enqueue_time(curCycle() + Cycles(temp_time_to_generate - 1));
@@ -1071,8 +1077,11 @@ NetworkInterface::coreSendFlitsOut(){
                     if (fl->get_type() == TAIL_ || \
                         fl->get_type() == HEAD_TAIL_)
                         out_edge.record_pkt(fl);
-
-                    //record the flit time information !!!!
+                    //Note that!! if intra-cluster, we should set the hop_num
+                    //to 0, because the intial value is -1 !
+                    //record the flit time information !!
+                    fl->increment_hops();
+                    assert(fl->get_route().hops_traversed==0);
                     incrementStats(fl);
                     crossbar_data[i].erase(crossbar_data[i].begin());
                 }
@@ -1117,8 +1126,9 @@ NetworkInterface::coreSendFlitsOut(){
                 for (int j=0;j<num_flits;j++){
                     flit* generated_fl = new flit(j, -1, 2, fl->get_route(), \
                     num_flits, fl->get_msg_ptr(), curCycle(), fl->get_tg_info());
-
-                    generated_fl->set_src_delay(curCycle() - fl->get_time());
+                    //the fl enqueue time record the time flit should be sent
+                    generated_fl->set_src_delay(curCycle() - \
+                        fl->get_enqueue_time());
 
                     crossbar_data[dst_core_idx].push_back(generated_fl);
                 }
@@ -1167,7 +1177,8 @@ NetworkInterface::coreSendFlitsOut(){
                 flit* generated_fl = new flit(j, vc, 2, fl->get_route(), \
                 num_flits, fl->get_msg_ptr(),curCycle(), fl->get_tg_info());
 
-                generated_fl->set_src_delay(curCycle() - fl->get_time());
+                generated_fl->set_src_delay(curCycle() - \
+                    fl->get_enqueue_time());
 
                 /*DPRINTF(TaskGraph, "NI %d Flit should send time in %lu\n",\
                  m_id, uint64_t(fl->get_enqueue_time()));

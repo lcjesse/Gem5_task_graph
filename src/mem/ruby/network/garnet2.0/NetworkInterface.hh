@@ -186,7 +186,8 @@ class NetworkInterface : public ClockedObject, public Consumer
     //remained execution time in each core
     std::vector<int> remained_execution_time;
 
-    void enqueueFlitsGeneratorBuffer(GraphEdge &, int num_flits);
+    void enqueueFlitsGeneratorBuffer(GraphEdge &, int num_flits, \
+      int task_execution_time);
     void updateGeneratorBuffer();
 
     void coreSendFlitsOut();
