@@ -743,8 +743,14 @@ NetworkInterface::enqueueTaskInThreadQueue()
             int jj;
             for (jj=0;jj<c_task.get_size_of_outgoing_edge_list();jj++){
                 GraphEdge &temp_edge = c_task.get_outgoing_edge_by_offset(jj);
-                if (temp_edge.get_out_memory_remained() <= 0)
+                /*
+                if (temp_edge.get_out_memory_remained() <= 0){
+                    printf("core %d [ %s ] task %d out buffer full !\n", \
+                        current_core_id, m_core_id_name[current_core_id].\
+                        c_str(), c_task.get_id());
                     break;
+                }*/
+                assert(temp_edge.get_out_memory_remained() > 0);
             }
             if (jj < c_task.get_size_of_outgoing_edge_list())
                 continue;
@@ -765,12 +771,23 @@ NetworkInterface::enqueueTaskInThreadQueue()
                         printf("\n");
                 }
 */
+                if (c_task.get_completed_times()==0){
+                    DPRINTF(TaskGraph, "Core %3d task %3d start executing\n", \
+                        current_core_id, c_task.get_id());
+                }
+
+                if (m_net_ptr->IsPrintTaskExecuInfo())
+                    *(m_net_ptr->task_start_time_vs_id->stream())<<\
+                    u_int64_t(curCycle())<<"\t"<<current_core_id<<\
+                    "\t"<<c_task.get_id()<<"\n";
+
                 c_task.add_c_e_times();
                 task_in_thread_queue[i][not_busy_idx] = c_task.get_id();
                 thread_busy_flag[i][not_busy_idx] = true;
                 assert(\
                     remained_execution_time_in_thread[i][not_busy_idx] == -1);
                 int execution_time = c_task.get_random_execution_time();
+                m_net_ptr->add_execution_time_to_total(execution_time);
                 remained_execution_time_in_thread[i][not_busy_idx] = \
                     execution_time;
                 c_task.record_execution_time(curCycle(), \
@@ -838,12 +855,24 @@ NetworkInterface::enqueueTaskInThreadQueue()
                         printf("\n");
                 }
 */
+
+                if (c_task.get_completed_times()==0){
+                    DPRINTF(TaskGraph, "Core %3d task %3d start executing\n",\
+                        current_core_id, c_task.get_id());
+                }
+
+                if (m_net_ptr->IsPrintTaskExecuInfo())
+                    *(m_net_ptr->task_start_time_vs_id->stream())<<\
+                        u_int64_t(curCycle())<<"\t"<<current_core_id<<\
+                        "\t"<<c_task.get_id()<<"\n";
+
                 c_task.add_c_e_times();
                 task_in_thread_queue[i][not_busy_idx] = c_task.get_id();
                 thread_busy_flag[i][not_busy_idx] = true;
                 assert(\
                     remained_execution_time_in_thread[i][not_busy_idx] == -1);
                 int execution_time = c_task.get_random_execution_time();
+                m_net_ptr->add_execution_time_to_total(execution_time);
                 remained_execution_time_in_thread[i][not_busy_idx] = \
                     execution_time;
                 c_task.record_execution_time(curCycle(), \

@@ -55,7 +55,9 @@ class GarnetNetwork(RubyNetwork):
         of the real application in task graph mode""");
     topology = Param.String("Crossbar", "check topologies for complete set");
     architecture_file = Param.String(" ", """architecture file for
-        task graph mode""")
+        task graph mode""");
+    print_task_execution_info = Param.Bool(False, """enable print task
+        execution information in the output directory.""")
 
 class GarnetNetworkInterface(ClockedObject):
     type = 'GarnetNetworkInterface'

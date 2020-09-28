@@ -1,4 +1,4 @@
-#!/bin/bash
+ #!/bin/bash
 GEM5=/home/wj/Study/gem5
 OUT_FILE_DIR=my_STATS/Ring_bottleneck_exploration_0627/Uniform_different_num_cores_with_HQM_vs_different_inj_rate
 INJECTION_RATE=0.01
@@ -59,6 +59,7 @@ if [ "${COLLECT_DATA}" = "1" ];then
 	    average_flit_vnet0_latency=`grep "average_flit_vnet_latency" ${IN_FILE} | cut -d "|" -f2 | sed 's/^\s*//' | sed 's/\s*$//'`
 	    average_flit_vnet1_latency=`grep "average_flit_vnet_latency" ${IN_FILE} | cut -d "|" -f3 | sed 's/^\s*//' | sed 's/\s*$//'`
 	    average_flit_vnet2_latency=`grep "average_flit_vnet_latency" ${IN_FILE} | cut -d "|" -f4 | sed 's/^\s*//' | sed 's/\s*$//'`
+    
             echo -e "${IN_FILE_DIR}\t${flits_received}\t${average_hops}\t${average_flit_latency}\t${average_flit_network_latency}\t${average_flit_vnet0_latency}\t${average_flit_vnet1_latency}\t${average_flit_vnet2_latency}" >> ${RESULT_FILE}
         done
     done

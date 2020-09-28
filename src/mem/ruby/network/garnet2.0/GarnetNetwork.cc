@@ -71,6 +71,7 @@ GarnetNetwork::GarnetNetwork(const Params *p)
     m_execution_iterations = p->execution_iterations;
     m_topology = p->topology;
     m_architecture_file = p->architecture_file;
+    m_print_task_execution_info = p->print_task_execution_info;
 
     m_enable_fault_model = p->enable_fault_model;
     if (m_enable_fault_model)
@@ -150,6 +151,13 @@ GarnetNetwork::init()
 
     // Task Graph Intinalization
     if (isTaskGraphEnabled()){
+        task_start_time_vs_id = simout.\
+            create("task_start_time_vs_id.log", false, true);
+        task_start_end_time_vs_id = simout.\
+            create("task_start_end_time_vs_id.log", false, true);
+        task_start_time_vs_id_iters = simout.\
+            create("task_start_time_vs_id_iters.log", false, true);
+
         //Construct Nodes
         DPRINTF(TaskGraph, "Start Construct Nodes !\n");
         if (constructArchitecture(m_architecture_file))
@@ -168,9 +176,7 @@ GarnetNetwork::init()
         DPRINTF(TaskGraph, "Start Load Traffic !\n");
         if (loadTraffic(m_task_graph_file))
             cout<<"info: Load Traffic - "<<\
-            m_task_graph_file<<" - successfully !"<<endl;
-
-
+                m_task_graph_file<<" - successfully !"<<endl;
 
     }
 
@@ -442,6 +448,9 @@ GarnetNetwork::regStats()
     m_ex_iters
         .name(name() + ".application_execution_iteration_times");
 
+    m_total_task_execution_time
+        .name(name() + ".total_task_execution_time");
+
 }
 
 void
@@ -668,8 +677,14 @@ GarnetNetwork::wakeup(){
         else {
             int Average_ETE_delay=0;
             for (int i=0;i<m_execution_iterations;i++){
+                if (m_print_task_execution_info)
+                    *(task_start_time_vs_id_iters->stream())<<"Execution\n";
                 int max_time=-1;
-                        int min_time=2147483647;
+                int min_time=2147483647;
+                int max_time_core_id=-1;
+                int max_time_task_id=-1;
+                int min_time_core_id=-1;
+                int min_time_task_id=-1;
                 for (int j=0;j<m_nodes/2;j++){
                     int num_cores_in_node = m_nis[j]->get_num_cores();
                     for (int k=0;k<num_cores_in_node;k++){
@@ -678,18 +693,45 @@ GarnetNetwork::wakeup(){
                         for (int l=0;l<task_list_len;l++){
                             GraphTask& temp_task = m_nis[j]->\
                                 get_task_by_offset(core_id, l);
+                            if (min_time > temp_task.get_start_time(i)){
+                                min_time_core_id = core_id;
+                                min_time_task_id = temp_task.get_id();
+                            }
+                            if (max_time < temp_task.get_end_time(i)){
+                                max_time_core_id = core_id;
+                                max_time_task_id = temp_task.get_id();
+                            }
                             min_time = min(temp_task.get_start_time(i), \
                                 min_time);
                             max_time = max(temp_task.get_end_time(i), \
                                 max_time);
+                            if (m_print_task_execution_info)
+                                *(task_start_time_vs_id_iters->stream())<<\
+                                    temp_task.get_start_time(i)<<"\t"<<\
+                                    core_id<<"\t"<<temp_task.get_id()<<"\n";
                         }
                     }
                 }
                 task_start_time.push_back(min_time);
                 task_end_time.push_back(max_time);
+
+                if (m_print_task_execution_info){
+                    *(task_start_end_time_vs_id->stream())<<"min\t"<<\
+                        min_time<<"\t"<<min_time_core_id<<"\t"\
+                        <<min_time_task_id<<"\n";
+                    *(task_start_end_time_vs_id->stream())<<"max\t"<<\
+                        max_time<<"\t"<<max_time_core_id<<"\t"\
+                        <<max_time_task_id<<"\n";
+                }
+
                 ETE_delay.push_back(max_time-min_time);
                 Average_ETE_delay=Average_ETE_delay+max_time-min_time;
             }
+
+            simout.close(task_start_time_vs_id);
+            simout.close(task_start_end_time_vs_id);
+            simout.close(task_start_time_vs_id_iters);
+
             Average_ETE_delay = Average_ETE_delay / m_execution_iterations;
             m_avg_ete_delay = Average_ETE_delay;
             m_ex_iters = m_execution_iterations;
@@ -699,8 +741,13 @@ GarnetNetwork::wakeup(){
             printf("Execution iterations: %3d\n", m_execution_iterations);
             printf("Average Iteration Delay: %d\n", Average_ETE_delay);
             for (int i=0; i<m_execution_iterations;i++){
-                printf("\tIteration %3d Applcation Execution Delay: %d\n", \
-                    i, ETE_delay[i]);
+                /* printf("\tIteration %3d Applcation Execution Delay: %d\n", \
+                    i, ETE_delay[i]);*/
+                int s=task_start_time[i];
+                int e=task_end_time[i];
+                printf("\tIteration %3d \tApplication Start time %10d \t\
+                Application End time %10d \t Applcation Execution Delay: \
+                %d\n", i, s, e, ETE_delay[i]);
             }
 
             exitSimLoop("Network Task Graph Simulation Complete.");

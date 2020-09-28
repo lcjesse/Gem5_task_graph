@@ -1,7 +1,7 @@
 #!/bin/bash
-DIR_NAME=`date +"%m_%d_%H"`
+OUT_FILE_NAME=`date +%m_%d_%H_%M`
 ./build/NULL/gem5.debug  \
---outdir my_STATS/${DIR_NAME} \
+--outdir my_STATS/${OUT_FILE_NAME} --debug-flags=TaskGraph \
 configs/example/garnet_synth_traffic.py \
 --topology=Ring \
 --num-cpus=12 \
@@ -12,12 +12,12 @@ configs/example/garnet_synth_traffic.py \
 --injectionrate=0 \
 --token-packet-length=6 \
 --network-task-graph-enable \
---task-graph-file="./my_benchmarks/CMP-0906/Application_01.stp" \
---execution-iteration=40 \
+--task-graph-file="./my_benchmarks/09_20/Application_01.stp" \
+--execution-iteration=1 \
 --routing-algorithm=2 \
 --vcs-per-vnet=2 \
 --link-width-bits=256 \
 --architecture-file="./my_benchmarks/CMP-0906/Heterogeneous_SoC_with_Ring_Topology.arch" \
 #--ruby-clock=2GHz
-#--sys-clock=2GHz
-# --debug-flags=TaskGraph
+#--sys-clock=2GHz 
+#--debug-flags=TaskGraph

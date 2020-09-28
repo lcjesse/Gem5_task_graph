@@ -57,6 +57,9 @@ def define_options(parser):
                             application in task graph mode.""")
     parser.add_option("--architecture-file", type="string", default=" ",
                        help="specify the filename, construct the architecture")
+    parser.add_option("--print-task-execution-info", action="store_true",
+                       default=False, help="""enable print task execution
+                       information in the output directory."""),
     parser.add_option("--router-latency", action="store", type="int",
                       default=1,
                       help="""number of pipeline stages in the garnet router.
@@ -127,6 +130,7 @@ def init_network(options, network, InterfaceClass):
         network.execution_iterations = options.execution_iteration
         network.topology = options.topology
         network.architecture_file = options.architecture_file
+        network.print_task_execution_info = options.print_task_execution_info
 
     if options.network == "simple":
         network.setup_buffers()

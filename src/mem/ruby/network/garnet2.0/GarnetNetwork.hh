@@ -37,6 +37,7 @@
 #include <iostream>
 #include <vector>
 
+#include "base/output.hh"
 #include "debug/TaskGraph.hh"
 #include "mem/ruby/common/Consumer.hh"
 #include "mem/ruby/network/Network.hh"
@@ -92,6 +93,7 @@ class GarnetNetwork : public Network, public Consumer
     bool constructArchitecture(std::string filename);
     int getNodeIdbyCoreId(int core_id);
 
+    bool IsPrintTaskExecuInfo(){return m_print_task_execution_info;}
 
     //for Ring Topology
     std::string getTopology() { return m_topology; }
@@ -164,6 +166,17 @@ class GarnetNetwork : public Network, public Consumer
         m_total_hops += hops;
     }
 
+    void
+    add_execution_time_to_total(int ex_time)
+    {
+        m_total_task_execution_time += ex_time;
+    }
+
+    //for debug
+    OutputStream *task_start_time_vs_id;
+    OutputStream *task_start_end_time_vs_id;
+    OutputStream *task_start_time_vs_id_iters;
+
   protected:
     // Configuration
     int m_num_rows;
@@ -179,6 +192,7 @@ class GarnetNetwork : public Network, public Consumer
     int m_token_packet_length;
     std::string m_topology;
     std::string m_architecture_file;
+    bool m_print_task_execution_info;
 
     //for task graph
     int m_num_proc;
@@ -226,6 +240,7 @@ class GarnetNetwork : public Network, public Consumer
     //add for TG
     Stats::Scalar m_avg_ete_delay;
     Stats::Scalar m_ex_iters;
+    Stats::Scalar m_total_task_execution_time;
 
   private:
     GarnetNetwork(const GarnetNetwork& obj);
