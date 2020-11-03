@@ -61,7 +61,19 @@ public:
         void initial();
 
         //record the incoming token/pkt
-        int record_pkt(flit* pkt);
+        int record_pkt(flit* pkt, int time);
+        //for compare all in edge's token receive time, choose the max time
+        //it will compare the first token the edge have, and delete it after
+        //it is used.
+        int get_token_received_time(){
+                //now the token has been consume
+                assert(token_receive_time.size() >= num_incoming_token + 1);
+                int time = token_receive_time.front();
+                token_receive_time.erase(token_receive_time.begin());
+                token_receive_time.shrink_to_fit();
+
+                return time;
+        }
 
         //when the edge is outgoing edge, we keep the ID of current token
         int
@@ -186,6 +198,9 @@ private:
 
         // the number of token which has come as a whole token
         int num_incoming_token;
+        // current total num of token which for compute task waiting time
+        int total_incoming_token;
+        std::vector<int> token_receive_time;
 
         //the number of partially received tokens
         std::vector<token_info_type> received_token_list;

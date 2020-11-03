@@ -172,6 +172,12 @@ class GarnetNetwork : public Network, public Consumer
         m_total_task_execution_time += ex_time;
     }
 
+    //record the latenty for src and dst
+    void
+    add_src_dst_latency(int src, int dst, int latency){
+        src_dst_latency[src][dst] += latency;
+    }
+
     //for debug
     OutputStream *task_start_time_vs_id;
     OutputStream *task_start_end_time_vs_id;
@@ -204,6 +210,9 @@ class GarnetNetwork : public Network, public Consumer
     std::vector<int> ETE_delay;
     //for construct architecture in task graph mode
     std::map<int, int> m_core_id_node_id; //core_id -> node_id
+    //for record point to point pkt lantency
+    int m_num_core;
+    int** src_dst_latency;
 
     // Statistical variables
     Stats::Vector m_packets_received;

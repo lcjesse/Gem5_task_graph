@@ -289,7 +289,7 @@ NetworkInterface::wakeup()
             if (t_flit->get_type() == TAIL_ || t_flit->get_type() == \
             HEAD_TAIL_) {
                 //received a pkt
-                dest_edge.record_pkt(t_flit);
+                dest_edge.record_pkt(t_flit, curCycle());
                 /*
                 DPRINTF(TaskGraph, " NI %d received the tail flit \
                 from the NI %d \n", m_id, t_flit->get_route().src_ni);
@@ -708,6 +708,9 @@ void
 NetworkInterface::enqueueTaskInThreadQueue()
 {
     assert(task_list.size() == m_num_cores);
+    //for debug, print info
+    int test_core = -1;
+    int test_task = -1;
     for (int i=0;i<m_num_cores;i++){
         if (task_list[i].size()<=0)
             continue;
@@ -715,19 +718,33 @@ NetworkInterface::enqueueTaskInThreadQueue()
         int current_core_id = lookUpMap(m_index_core_id, i);
         int num_threads = lookUpMap(m_core_id_thread, current_core_id);
 
+        if (current_core_id==test_core){
+            printf("Cycle <<%lu>> rr_idx%3d\n",\
+                u_int64_t(curCycle()),task_to_exec_round_robin[i]);
+        }
+
+        int round_robin_offset = 0;
+
         for (unsigned int ii=0;ii<task_list[i].size();ii++){
             int j = (ii + task_to_exec_round_robin[i]) % task_list[i].size();
+            //task round robin refers the task offset which the previous is
+            //execute, so when the task execute in the following process, the
+            //index would add 1.
 
             GraphTask &c_task = task_list[i][j];
             assert(&(get_task_by_offset(current_core_id, j))==\
                 &(task_list[i][j]) && &(task_list[i][j]) == &(c_task));
+
+            if (current_core_id==test_core)
+                printf("Process Task %3d!\n", c_task.get_id());
+
             //check the state of task
-            if (c_task.get_completed_times()>=c_task.get_required_times())
-                continue;
-            else if (c_task.get_c_e_times()>=c_task.get_required_times()){
-                assert(c_task.get_c_e_times()>=c_task.get_completed_times());
-                continue;
-            }
+            // if (c_task.get_completed_times()>=c_task.get_required_times())
+            //     continue;
+            // else if (c_task.get_c_e_times()>=c_task.get_required_times()){
+            //    assert(c_task.get_c_e_times()>=c_task.get_completed_times());
+            //     continue;
+            // }
 
             //check whether the thread queue busy
             int not_busy_idx;
@@ -736,8 +753,14 @@ NetworkInterface::enqueueTaskInThreadQueue()
                     break;
             }
             //if all queue is busy, break to next core
-            if (not_busy_idx == num_threads)
+            if (not_busy_idx == num_threads){
+                if (current_core_id==test_core)
+                    printf("Task %3d not execute because of all queue are \
+                    busy!\nThe core is executing %3d\n", c_task.get_id(), \
+                    task_in_thread_queue[i][0]);
                 break;
+            }
+
             /****************** Check the task state ******************/
             //check the out_edge out_memory
             int jj;
@@ -781,6 +804,12 @@ NetworkInterface::enqueueTaskInThreadQueue()
                     u_int64_t(curCycle())<<"\t"<<current_core_id<<\
                     "\t"<<c_task.get_id()<<"\n";
 
+                int task_offset = get_task_offset_by_task_id(current_core_id,\
+                    c_task.get_id());
+                if (task_offset==task_to_exec_round_robin[i]+\
+                    round_robin_offset)
+                    round_robin_offset += 1;
+
                 c_task.add_c_e_times();
                 task_in_thread_queue[i][not_busy_idx] = c_task.get_id();
                 thread_busy_flag[i][not_busy_idx] = true;
@@ -792,6 +821,13 @@ NetworkInterface::enqueueTaskInThreadQueue()
                     execution_time;
                 c_task.record_execution_time(curCycle(), \
                     curCycle()+execution_time);
+
+                if (current_core_id==test_core)
+                        printf("Task %3d start\n", c_task.get_id());
+
+                //if the task have no in edges, we assume it can execute at the
+                //Cycle 0.
+                c_task.set_all_tokens_received_time(0);
 
                 for (int k=0;k<c_task.get_size_of_outgoing_edge_list();k++){
                     GraphEdge &temp_edge = \
@@ -823,8 +859,15 @@ NetworkInterface::enqueueTaskInThreadQueue()
                         break;
                 }
                 ////the requirement is not satisfied
-                if (k < c_task.get_size_of_incoming_edge_list())
+                if (k < c_task.get_size_of_incoming_edge_list()){
+                    if (current_core_id==test_core)
+                        printf("Task %3d requirement is not satisfied\n",\
+                            c_task.get_id());
                     continue;
+                }
+
+                if (current_core_id==test_core)
+                        printf("Task %3d start\n", c_task.get_id());
 
                 for (k=0;k<c_task.get_size_of_incoming_edge_list();k++){
                     GraphEdge &temp_edge = \
@@ -855,16 +898,25 @@ NetworkInterface::enqueueTaskInThreadQueue()
                         printf("\n");
                 }
 */
-
                 if (c_task.get_completed_times()==0){
                     DPRINTF(TaskGraph, "Core %3d task %3d start executing\n",\
                         current_core_id, c_task.get_id());
                 }
 
+                if (c_task.get_id()==test_task)
+                    printf("Task %3d start executing %3d times\n", \
+                        c_task.get_id(), c_task.get_c_e_times());
+
                 if (m_net_ptr->IsPrintTaskExecuInfo())
                     *(m_net_ptr->task_start_time_vs_id->stream())<<\
                         u_int64_t(curCycle())<<"\t"<<current_core_id<<\
                         "\t"<<c_task.get_id()<<"\n";
+                //if the current task is the first task, move
+                int task_offset = get_task_offset_by_task_id(current_core_id,\
+                    c_task.get_id());
+                if (task_offset==task_to_exec_round_robin[i]+\
+                    round_robin_offset)
+                    round_robin_offset += 1;
 
                 c_task.add_c_e_times();
                 task_in_thread_queue[i][not_busy_idx] = c_task.get_id();
@@ -878,6 +930,25 @@ NetworkInterface::enqueueTaskInThreadQueue()
                 c_task.record_execution_time(curCycle(), \
                     curCycle()+execution_time);
 
+                //For the task has in edges, compare the receive token time of
+                //the iteration and choose the max cycle.
+                int get_all_tokens_time = 0;
+                for (int ii=0;ii<c_task.get_size_of_incoming_edge_list();ii++){
+                    GraphEdge &temp_edge = \
+                        c_task.get_incoming_edge_by_offset(ii);
+                    int edge_get_token_time = temp_edge.\
+                        get_token_received_time();
+                    if (edge_get_token_time > get_all_tokens_time)
+                        get_all_tokens_time = edge_get_token_time;
+                }
+                c_task.set_all_tokens_received_time(get_all_tokens_time);
+                assert(curCycle()-get_all_tokens_time==\
+                    c_task.get_task_waiting_time(c_task.get_c_e_times()-1));
+                /*
+                printf("Core %3d Task %3d Waiting time %3d\n",\
+                    current_core_id, c_task.get_id(),\
+                    c_task.get_task_waiting_time(token_idx));
+                */
                 for (int k=0;k<c_task.get_size_of_outgoing_edge_list();k++){
                     GraphEdge &temp_edge = \
                         c_task.get_outgoing_edge_by_offset(k);
@@ -898,8 +969,8 @@ NetworkInterface::enqueueTaskInThreadQueue()
                 }
             }
         }
-        task_to_exec_round_robin[i] = (task_to_exec_round_robin[i] + 1) \
-            % task_list[i].size();
+        task_to_exec_round_robin[i] = (task_to_exec_round_robin[i] + \
+            round_robin_offset) % task_list[i].size();
     }
 }
 
@@ -1059,12 +1130,16 @@ NetworkInterface::updateGeneratorBuffer(){
                     GraphEdge& in_edge = dst_task.\
                         get_incoming_edge_by_eid(fl->get_tg_info().edge_id);
 
-                    if (!in_edge.record_pkt(fl))
+                    if (!in_edge.record_pkt(fl, curCycle()))
                         printf("record pkt Error! \n");
+                    //Note: if flit useless, remeber to delete !!
+                    delete fl;
                 }else
                     core_buffer[i].push_back(fl);
 
+                delete generator_buffer[i].at(j);
                 generator_buffer[i].erase(generator_buffer[i].begin()+j);
+                generator_buffer[i].shrink_to_fit();
                 j--;
             }
         }
@@ -1105,14 +1180,16 @@ NetworkInterface::coreSendFlitsOut(){
 
                     if (fl->get_type() == TAIL_ || \
                         fl->get_type() == HEAD_TAIL_)
-                        out_edge.record_pkt(fl);
+                        out_edge.record_pkt(fl, curCycle());
                     //Note that!! if intra-cluster, we should set the hop_num
                     //to 0, because the intial value is -1 !
                     //record the flit time information !!
                     fl->increment_hops();
                     assert(fl->get_route().hops_traversed==0);
                     incrementStats(fl);
+                    delete fl;
                     crossbar_data[i].erase(crossbar_data[i].begin());
+                    crossbar_data[i].shrink_to_fit();
                 }
             }else{
                 crossbar_delay_timer[i] = crossbar_delay_timer[i] + 1;
@@ -1162,7 +1239,10 @@ NetworkInterface::coreSendFlitsOut(){
                     crossbar_data[dst_core_idx].push_back(generated_fl);
                 }
 
+                delete fl;
+
                 core_buffer[j].erase(core_buffer[j].begin());
+                core_buffer[j].shrink_to_fit();
 
                 crossbar_busy_out[dst_core_idx] = true;
                 crossbar_delay_timer[dst_core_idx] = 0;
@@ -1217,7 +1297,10 @@ NetworkInterface::coreSendFlitsOut(){
                 m_ni_out_vcs[vc]->insert(generated_fl);
             }
 
+            delete fl;
+
             core_buffer[j].erase(core_buffer[j].begin());
+            core_buffer[j].shrink_to_fit();
 
             m_ni_out_vcs_enqueue_time[vc] = curCycle();
             m_out_vc_state[vc]->setState(ACTIVE_, curCycle());

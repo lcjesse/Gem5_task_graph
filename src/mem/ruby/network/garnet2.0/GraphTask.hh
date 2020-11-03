@@ -77,6 +77,12 @@ public:
         }
         int get_start_time(int i){return start_time.at(i);}
         int get_end_time(int i){return end_time.at(i);}
+        void set_all_tokens_received_time(int time){
+                get_all_tokens_time.push_back(time);
+        }
+        int get_task_waiting_time(int i){
+                return start_time[i]-get_all_tokens_time[i];}
+        int get_token_received_size(){ return get_all_tokens_time.size(); }
 
 private:
         // the statistical task executions follow Gaussian distribution
@@ -100,6 +106,9 @@ private:
         int required_times;
 
         int task_state;
+        //For a task, first get all tokens, then if core idle, the task begin
+        //execute, so between them could be the task waiting time.
+        std::vector<int> get_all_tokens_time;
         std::vector<int> start_time;
         std::vector<int> end_time;
 

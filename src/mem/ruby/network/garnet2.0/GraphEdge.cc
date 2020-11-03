@@ -5,13 +5,14 @@ GraphEdge::initial()
 {
         output_token_id = 0;
         num_incoming_token = 0;
+        total_incoming_token = 0;
         generate_seed();
         gen_exp_dis_time(0.1);
         return;
 }
 
 int
-GraphEdge::record_pkt(flit* fl)
+GraphEdge::record_pkt(flit* fl, int time)
 {
         int i;
         // find token
@@ -51,7 +52,10 @@ GraphEdge::record_pkt(flit* fl)
                 received_token_list.at(i).length_in_pkt)
         {
                 num_incoming_token++;
+                total_incoming_token++;
+                token_receive_time.push_back(time);
                 received_token_list.erase(received_token_list.begin() + i);
+                received_token_list.shrink_to_fit();
         } else if (received_token_list.at(i).received_pkt > \
                 received_token_list.at(i).length_in_pkt) {
                 fatal(" error receiving token when record flit ! ");
@@ -104,6 +108,7 @@ GraphEdge::record_sent_pkt(flit* fl)
                 sent_token_list.at(i).length_in_pkt)
         {
                 sent_token_list.erase(sent_token_list.begin() + i);
+                sent_token_list.shrink_to_fit();
                 //at this moment, a buffer size is emptied
                 assert(update_out_memory_read_pointer());
                 /*
