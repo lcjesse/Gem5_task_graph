@@ -83,6 +83,8 @@ public:
         int get_task_waiting_time(int i){
                 return start_time[i]-get_all_tokens_time[i];}
         int get_token_received_size(){ return get_all_tokens_time.size(); }
+        void set_app_idx(int i){ app_idx=i; return; }
+        int get_app_idx() { return app_idx; }
 
 private:
         // the statistical task executions follow Gaussian distribution
@@ -95,6 +97,9 @@ private:
         // the sequence number the task is assigned to execute on the PU
         int schedule;
         int max_time; // the worst-case execution time of the task
+
+        // for multi-application
+        int app_idx;
 
         // each entry is an incoming edge
         std::vector<GraphEdge> incoming_edge_list;

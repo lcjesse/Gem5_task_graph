@@ -92,6 +92,8 @@ class GarnetNetwork : public Network, public Consumer
     //for construct architecture in task graph mode
     bool constructArchitecture(std::string filename);
     int getNodeIdbyCoreId(int core_id);
+    //for read the application configuration
+    bool readApplicationConfig(std::string filename);
 
     bool IsPrintTaskExecuInfo(){return m_print_task_execution_info;}
 
@@ -202,14 +204,19 @@ class GarnetNetwork : public Network, public Consumer
 
     //for task graph
     int m_num_proc;
-    int m_num_task;
-    int m_num_edge;
+    int* m_num_task;
+    int* m_num_edge;
     int m_execution_iterations;
-    std::vector<double> task_start_time;
-    std::vector<double> task_end_time;
-    std::vector<int> ETE_delay;
+    std::vector<std::vector<double> > task_start_time;
+    std::vector<std::vector<double> > task_end_time;
+    std::vector<std::vector<int> > ETE_delay;
     //for construct architecture in task graph mode
     std::map<int, int> m_core_id_node_id; //core_id -> node_id
+    //for multi-application traffic
+    int m_num_application;
+    int m_total_execution_iterations;
+    std::string* m_application_name;
+    int* m_applicaton_execution_iterations;
     //for record point to point pkt lantency
     int m_num_core;
     int** src_dst_latency;

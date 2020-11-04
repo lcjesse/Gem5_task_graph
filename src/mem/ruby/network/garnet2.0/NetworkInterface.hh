@@ -75,18 +75,19 @@ class NetworkInterface : public ClockedObject, public Consumer
     uint32_t functionalWrite(Packet *);
 
     //for task graph traffic
-    int add_task(GraphTask &t);
+    int add_task(int app_idx, GraphTask &t);
     int	sort_task_list();
-    int get_task_offset_by_task_id(int core_id, int tid);
-    GraphTask& get_task_by_task_id(int core_id, int tid);
+    int get_task_offset_by_task_id(int core_id, int app_idx, int tid);
+    GraphTask& get_task_by_task_id(int core_id, int app_idx, int tid);
     NodeID get_ni_id() { return m_id; }
-    unsigned int get_task_list_length(int idx) { return task_list[idx].size(); }
-    GraphTask& get_task_by_offset(int core_id, int i){
+    unsigned int get_task_list_length(int idx, int app_idx){
+      return task_list[idx][app_idx].size(); }
+    GraphTask& get_task_by_offset(int core_id, int app_idx, int i){
       int idx = lookUpMap(m_core_id_index, core_id);
-      return task_list[idx][i];
+      return task_list[idx][app_idx][i];
     }
     //muilt core
-    int get_core_id_by_task_id(int tid);
+    int get_core_id_by_task_id(int app_idx, int tid);
     int get_num_cores(){ return m_num_cores; }
     int get_core_id_by_index(int i);
     std::string get_core_name_by_index(int i);
@@ -96,7 +97,7 @@ class NetworkInterface : public ClockedObject, public Consumer
 
     //for construct architecture in tg mode
     bool configureNode(int num_cores, int* core_id, \
-    std::string* core_name, int* num_threads);
+    std::string* core_name, int* num_threads, int num_apps);
     void printNodeConfiguation();
     int lookUpMap(std::map<int, int> m, int idx);
 
@@ -145,14 +146,17 @@ class NetworkInterface : public ClockedObject, public Consumer
 
     //for task graph traffic
     //task_list in each core
-    std::vector<std::vector<GraphTask> > task_list;
+    std::vector<std::vector<std::vector<GraphTask> > > task_list;
     std::vector<std::vector<int> > task_in_waiting_list;
     std::vector<int> waiting_list_offset;
     //thread_queue[num_cores][num_threads]
     int** task_in_thread_queue;
     int** remained_execution_time_in_thread;
     bool** thread_busy_flag;
-    std::vector<int> task_to_exec_round_robin;
+    int** task_to_exec_round_robin;
+    //for multi-app round robin
+    int* app_exec_rr;
+    int** app_idx_in_thread_queue;
 
     //for construct architecture in tg mode
     int m_num_cores;
@@ -160,6 +164,8 @@ class NetworkInterface : public ClockedObject, public Consumer
     std::map<int, int> m_core_id_index; //core_id -> task list index
     std::map<int, std::string> m_core_id_name; //core_id -> core name
     std::map<int, int> m_core_id_thread;//core_id -> num_threads
+    //for multi-applications
+    int m_num_apps;
 
     //buffer for each core and
     //for inter-cluster and intra-cluster communication

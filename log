@@ -1,0 +1,674 @@
+gem5 Simulator System.  http://gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 compiled Nov  4 2020 13:14:24
+gem5 started Nov  4 2020 16:57:46
+gem5 executing on study.centos.wj, pid 70693
+command line: /home/wj/Study/gem5/build/NULL/gem5.debug --outdir /home/wj/Study/gem5/my_STATS/11_04/time_core_id/Application_02_Iters_20_Memory_Access_20_Memory_Type_DDR3 /home/wj/Study/gem5/configs/example/garnet_synth_traffic.py --topology=Ring --num-cpus=12 --num-dirs=12 --mesh-rows=1 --network=garnet2.0 --inj-vnet=2 --injectionrate=0 --token-packet-length=6 --network-task-graph-enable --task-graph-file=/home/wj/Study/gem5/my_benchmarks/11_03/Memory_Access_20_Memory_Type_DDR3/multi_application.cfg --execution-iteration=20 --routing-algorithm=2 --vcs-per-vnet=2 --link-width-bits=256 --architecture-file=/home/wj/Study/gem5/my_benchmarks/11_03/Heterogeneous_SoC_with_Ring_Topology.arch
+
+Global frequency set at 1000000000 ticks per second
+info: Load Application Configuration -/home/wj/Study/gem5/my_benchmarks/11_03/Memory_Access_20_Memory_Type_DDR3/multi_application.cfg - successfully !
+**********************
+Core ID -> Node ID
+
+0	0
+1	1
+2	2
+3	2
+4	3
+5	4
+6	4
+7	4
+8	5
+9	6
+10	7
+11	8
+12	8
+13	8
+14	9
+15	10
+16	10
+17	10
+18	10
+19	11
+
+**********************
+info: Construct Node -/home/wj/Study/gem5/my_benchmarks/11_03/Heterogeneous_SoC_with_Ring_Topology.arch - successfully !
+
+Node ID: 0	Number of Cores: 1
+	Core ID: 0	Core Name: HQM	Number of Threads: 1
+Node ID: 1	Number of Cores: 1
+	Core ID: 1	Core Name: Core-0	Number of Threads: 4
+Node ID: 2	Number of Cores: 2
+	Core ID: 2	Core Name: PE-1	Number of Threads: 25
+	Core ID: 3	Core Name: PE-2	Number of Threads: 25
+Node ID: 3	Number of Cores: 1
+	Core ID: 4	Core Name: DDR-0	Number of Threads: 1
+Node ID: 4	Number of Cores: 3
+	Core ID: 5	Core Name: PE-3	Number of Threads: 25
+	Core ID: 6	Core Name: PE-4	Number of Threads: 25
+	Core ID: 7	Core Name: PE-5	Number of Threads: 1
+Node ID: 5	Number of Cores: 1
+	Core ID: 8	Core Name: PE-13	Number of Threads: 1
+Node ID: 6	Number of Cores: 1
+	Core ID: 9	Core Name: Core-1	Number of Threads: 4
+Node ID: 7	Number of Cores: 1
+	Core ID: 10	Core Name: Core-2	Number of Threads: 4
+Node ID: 8	Number of Cores: 3
+	Core ID: 11	Core Name: PE-6	Number of Threads: 1
+	Core ID: 12	Core Name: PE-7	Number of Threads: 3
+	Core ID: 13	Core Name: PE-8	Number of Threads: 1
+Node ID: 9	Number of Cores: 1
+	Core ID: 14	Core Name: DDR-1	Number of Threads: 1
+Node ID: 10	Number of Cores: 4
+	Core ID: 15	Core Name: PE-9	Number of Threads: 1
+	Core ID: 16	Core Name: PE-10	Number of Threads: 1
+	Core ID: 17	Core Name: PE-11	Number of Threads: 1
+	Core ID: 18	Core Name: PE-12	Number of Threads: 1
+Node ID: 11	Number of Cores: 1
+	Core ID: 19	Core Name: Core-3	Number of Threads: 4
+
+**********************
+**********************
+Traffic Information
+**********************
+Node 0 with 1 Cores
+**********************
+Core Index:     0	Core Id:     0	Core Name:     HQM
+
+	Application: Application_01.stp
+
+  	Task     5	shedule     0
+  	Task    11	shedule     1
+  	Task    18	shedule     2
+  	Task    34	shedule     3
+
+	Application: Application_02.stp
+
+  	Task     5	shedule     0
+  	Task    11	shedule     1
+  	Task    15	shedule     2
+
+	Application: Application_03.stp
+
+  	Task     5	shedule     0
+  	Task    11	shedule     1
+  	Task    15	shedule     2
+
+	Application: Application_04.stp
+
+  	Task     5	shedule     0
+  	Task    11	shedule     1
+  	Task    26	shedule     2
+  	Task    42	shedule     3
+
+	Application: Application_05.stp
+
+  	Task     5	shedule     0
+  	Task    11	shedule     1
+  	Task    15	shedule     2
+  	Task    17	shedule     3
+  	Task    32	shedule     4
+  	Task    36	shedule     5
+
+**********************
+Node 1 with 1 Cores
+**********************
+Core Index:     0	Core Id:     1	Core Name:  Core-0
+
+	Application: Application_01.stp
+
+  	Task    13	shedule     0
+  	Task    15	shedule     1
+  	Task    17	shedule     2
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+  	Task    13	shedule     0
+  	Task    15	shedule     1
+  	Task    17	shedule     2
+  	Task    21	shedule     3
+  	Task    23	shedule     4
+  	Task    25	shedule     5
+
+	Application: Application_05.stp
+
+  	Task    19	shedule     0
+  	Task    21	shedule     1
+  	Task    23	shedule     2
+  	Task    27	shedule     3
+  	Task    29	shedule     4
+  	Task    31	shedule     5
+
+**********************
+Node 2 with 2 Cores
+**********************
+Core Index:     0	Core Id:     2	Core Name:    PE-1
+
+	Application: Application_01.stp
+
+  	Task     6	shedule     0
+  	Task     8	shedule     1
+  	Task    10	shedule     2
+  	Task    19	shedule     3
+  	Task    21	shedule     4
+  	Task    23	shedule     5
+  	Task    35	shedule     6
+  	Task    37	shedule     7
+  	Task    39	shedule     8
+
+	Application: Application_02.stp
+
+  	Task     6	shedule     0
+  	Task     8	shedule     1
+  	Task    10	shedule     2
+  	Task    16	shedule     3
+  	Task    18	shedule     4
+  	Task    20	shedule     5
+
+	Application: Application_03.stp
+
+  	Task     6	shedule     0
+  	Task     8	shedule     1
+  	Task    10	shedule     2
+  	Task    16	shedule     3
+  	Task    18	shedule     4
+  	Task    20	shedule     5
+  	Task    22	shedule     6
+
+	Application: Application_04.stp
+
+  	Task     6	shedule     0
+  	Task     8	shedule     1
+  	Task    10	shedule     2
+  	Task    27	shedule     3
+  	Task    29	shedule     4
+  	Task    31	shedule     5
+  	Task    43	shedule     6
+  	Task    45	shedule     7
+  	Task    47	shedule     8
+
+	Application: Application_05.stp
+
+  	Task     6	shedule     0
+  	Task     8	shedule     1
+  	Task    10	shedule     2
+  	Task    16	shedule     3
+  	Task    37	shedule     4
+  	Task    39	shedule     5
+  	Task    41	shedule     6
+Core Index:     1	Core Id:     3	Core Name:    PE-2
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+
+**********************
+Node 3 with 1 Cores
+**********************
+Core Index:     0	Core Id:     4	Core Name:   DDR-0
+
+	Application: Application_01.stp
+
+  	Task     3	shedule     0
+  	Task     7	shedule     1
+  	Task     9	shedule     2
+  	Task    12	shedule     3
+  	Task    14	shedule     4
+  	Task    16	shedule     5
+  	Task    20	shedule     6
+  	Task    22	shedule     7
+  	Task    26	shedule     8
+  	Task    32	shedule     9
+  	Task    36	shedule    10
+  	Task    38	shedule    11
+  	Task    42	shedule    12
+
+	Application: Application_02.stp
+
+  	Task     3	shedule     0
+  	Task     7	shedule     1
+  	Task     9	shedule     2
+  	Task    13	shedule     3
+  	Task    17	shedule     4
+  	Task    19	shedule     5
+  	Task    23	shedule     6
+
+	Application: Application_03.stp
+
+  	Task     3	shedule     0
+  	Task     7	shedule     1
+  	Task     9	shedule     2
+  	Task    13	shedule     3
+  	Task    19	shedule     4
+  	Task    21	shedule     5
+  	Task    25	shedule     6
+
+	Application: Application_04.stp
+
+  	Task     3	shedule     0
+  	Task     7	shedule     1
+  	Task     9	shedule     2
+  	Task    12	shedule     3
+  	Task    14	shedule     4
+  	Task    16	shedule     5
+  	Task    19	shedule     6
+  	Task    22	shedule     7
+  	Task    24	shedule     8
+  	Task    28	shedule     9
+  	Task    30	shedule    10
+  	Task    34	shedule    11
+  	Task    40	shedule    12
+  	Task    44	shedule    13
+  	Task    46	shedule    14
+  	Task    50	shedule    15
+
+	Application: Application_05.stp
+
+  	Task     3	shedule     0
+  	Task     7	shedule     1
+  	Task     9	shedule     2
+  	Task    13	shedule     3
+  	Task    18	shedule     4
+  	Task    20	shedule     5
+  	Task    22	shedule     6
+  	Task    25	shedule     7
+  	Task    28	shedule     8
+  	Task    30	shedule     9
+  	Task    34	shedule    10
+  	Task    38	shedule    11
+  	Task    40	shedule    12
+  	Task    44	shedule    13
+
+**********************
+Node 4 with 3 Cores
+**********************
+Core Index:     0	Core Id:     5	Core Name:    PE-3
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+Core Index:     1	Core Id:     6	Core Name:    PE-4
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+Core Index:     2	Core Id:     7	Core Name:    PE-5
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+  	Task    12	shedule     0
+  	Task    14	shedule     1
+  	Task    33	shedule     2
+  	Task    35	shedule     3
+
+**********************
+Node 5 with 1 Cores
+**********************
+Core Index:     0	Core Id:     8	Core Name:   PE-13
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+  	Task    18	shedule     0
+  	Task    20	shedule     1
+
+	Application: Application_05.stp
+
+
+**********************
+Node 6 with 1 Cores
+**********************
+Core Index:     0	Core Id:     9	Core Name:  Core-1
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+
+**********************
+Node 7 with 1 Cores
+**********************
+Core Index:     0	Core Id:    10	Core Name:  Core-2
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+
+**********************
+Node 8 with 3 Cores
+**********************
+Core Index:     0	Core Id:    11	Core Name:    PE-6
+
+	Application: Application_01.stp
+
+  	Task     1	shedule     0
+  	Task    28	shedule     1
+  	Task    30	shedule     2
+  	Task    44	shedule     3
+
+	Application: Application_02.stp
+
+  	Task     1	shedule     0
+  	Task    25	shedule     1
+
+	Application: Application_03.stp
+
+  	Task     1	shedule     0
+  	Task    17	shedule     1
+  	Task    27	shedule     2
+
+	Application: Application_04.stp
+
+  	Task     1	shedule     0
+  	Task    36	shedule     1
+  	Task    38	shedule     2
+  	Task    52	shedule     3
+
+	Application: Application_05.stp
+
+  	Task     1	shedule     0
+  	Task    46	shedule     1
+Core Index:     1	Core Id:    12	Core Name:    PE-7
+
+	Application: Application_01.stp
+
+  	Task     0	shedule     0
+  	Task     2	shedule     1
+  	Task     4	shedule     2
+  	Task    25	shedule     3
+  	Task    27	shedule     4
+  	Task    29	shedule     5
+  	Task    31	shedule     6
+  	Task    33	shedule     7
+  	Task    41	shedule     8
+  	Task    43	shedule     9
+  	Task    45	shedule    10
+
+	Application: Application_02.stp
+
+  	Task     0	shedule     0
+  	Task     2	shedule     1
+  	Task     4	shedule     2
+  	Task    22	shedule     3
+  	Task    24	shedule     4
+  	Task    26	shedule     5
+
+	Application: Application_03.stp
+
+  	Task     0	shedule     0
+  	Task     2	shedule     1
+  	Task     4	shedule     2
+  	Task    24	shedule     3
+  	Task    26	shedule     4
+  	Task    28	shedule     5
+
+	Application: Application_04.stp
+
+  	Task     0	shedule     0
+  	Task     2	shedule     1
+  	Task     4	shedule     2
+  	Task    33	shedule     3
+  	Task    35	shedule     4
+  	Task    37	shedule     5
+  	Task    39	shedule     6
+  	Task    41	shedule     7
+  	Task    49	shedule     8
+  	Task    51	shedule     9
+  	Task    53	shedule    10
+
+	Application: Application_05.stp
+
+  	Task     0	shedule     0
+  	Task     2	shedule     1
+  	Task     4	shedule     2
+  	Task    43	shedule     3
+  	Task    45	shedule     4
+  	Task    47	shedule     5
+Core Index:     2	Core Id:    13	Core Name:    PE-8
+
+	Application: Application_01.stp
+
+  	Task    24	shedule     0
+  	Task    40	shedule     1
+
+	Application: Application_02.stp
+
+  	Task    21	shedule     0
+
+	Application: Application_03.stp
+
+  	Task    23	shedule     0
+
+	Application: Application_04.stp
+
+  	Task    32	shedule     0
+  	Task    48	shedule     1
+
+	Application: Application_05.stp
+
+  	Task    42	shedule     0
+
+**********************
+Node 9 with 1 Cores
+**********************
+Core Index:     0	Core Id:    14	Core Name:   DDR-1
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+
+**********************
+Node 10 with 4 Cores
+**********************
+Core Index:     0	Core Id:    15	Core Name:    PE-9
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+  	Task    12	shedule     0
+  	Task    14	shedule     1
+
+	Application: Application_03.stp
+
+  	Task    12	shedule     0
+  	Task    14	shedule     1
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+Core Index:     1	Core Id:    16	Core Name:   PE-10
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+Core Index:     2	Core Id:    17	Core Name:   PE-11
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+  	Task    24	shedule     0
+  	Task    26	shedule     1
+Core Index:     3	Core Id:    18	Core Name:   PE-12
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+
+**********************
+Node 11 with 1 Cores
+**********************
+Core Index:     0	Core Id:    19	Core Name:  Core-3
+
+	Application: Application_01.stp
+
+
+	Application: Application_02.stp
+
+
+	Application: Application_03.stp
+
+
+	Application: Application_04.stp
+
+
+	Application: Application_05.stp
+
+
+The Total task is 204
+
+info: Load Traffic - /home/wj/Study/gem5/my_benchmarks/11_03/Memory_Access_20_Memory_Type_DDR3/multi_application.cfg - successfully !
+info: Application - Application_01.stp - has executed successfully !
+Execution iterations:   3
+Average Iteration Delay: 46865
+	Iteration   0 	Application Start time          1 	                    Application End time       3316 	 Applcation Execution Delay:                     3315
+	Iteration   1 	Application Start time         46 	                    Application End time      21966 	 Applcation Execution Delay:                     21920
+	Iteration   2 	Application Start time         56 	                    Application End time     115416 	 Applcation Execution Delay:                     115360
+info: Application - Application_02.stp - has executed successfully !
+Execution iterations:   1
+Average Iteration Delay: 1275
+	Iteration   0 	Application Start time          1 	                    Application End time       1276 	 Applcation Execution Delay:                     1275
+info: Application - Application_03.stp - has executed successfully !
+Execution iterations:   2
+Average Iteration Delay: 4302
+	Iteration   0 	Application Start time          1 	                    Application End time       2686 	 Applcation Execution Delay:                     2685
+	Iteration   1 	Application Start time         16 	                    Application End time       5936 	 Applcation Execution Delay:                     5920
+info: Application - Application_04.stp - has executed successfully !
+Execution iterations:   2
+Average Iteration Delay: 54615
+	Iteration   0 	Application Start time         26 	                    Application End time       8696 	 Applcation Execution Delay:                     8670
+	Iteration   1 	Application Start time         36 	                    Application End time     100596 	 Applcation Execution Delay:                     100560
+info: Application - Application_05.stp - has executed successfully !
+Execution iterations:   2
+Average Iteration Delay: 29150
+	Iteration   0 	Application Start time         26 	                    Application End time       6306 	 Applcation Execution Delay:                     6280
+	Iteration   1 	Application Start time         36 	                    Application End time      52056 	 Applcation Execution Delay:                     52020
+Exiting @ tick 115416 because Network Task Graph Simulation Complete.

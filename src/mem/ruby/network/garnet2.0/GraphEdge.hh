@@ -175,6 +175,10 @@ public:
         nothing; else, dest_task's in_edge's in_memory_write
         */
 
+       //for multi-app
+        void set_app_idx(int i){ app_idx=i; return; }
+        int get_app_idx() { return app_idx; }
+
 private:
         // the statistical token sizes follow Gaussian distribution
         double mu_token_size;	 // the mean of the token size
@@ -226,6 +230,9 @@ private:
         int in_memory_write_pointer;
         int in_memory_read_pointer;
         int in_memory_remained;
+
+        //for multi-app
+        int app_idx;
 };
 
 

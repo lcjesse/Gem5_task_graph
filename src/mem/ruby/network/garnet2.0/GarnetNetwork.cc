@@ -157,7 +157,12 @@ GarnetNetwork::init()
             create("task_start_end_time_vs_id.log", false, true);
         task_start_time_vs_id_iters = simout.\
             create("task_start_time_vs_id_iters.log", false, true);
-
+        // write here because we need the total number of application before
+        //configure nodes
+        DPRINTF(TaskGraph, "Start Load Application Configuration !\n");
+        if (readApplicationConfig(m_task_graph_file))
+            cout<<"info: Load Application Configuration -"<<m_task_graph_file\
+                <<" - successfully !"<<endl;
         //Construct Nodes
         DPRINTF(TaskGraph, "Start Construct Nodes !\n");
         if (constructArchitecture(m_architecture_file))
@@ -178,6 +183,9 @@ GarnetNetwork::init()
             cout<<"info: Load Traffic - "<<\
                 m_task_graph_file<<" - successfully !"<<endl;
 
+        ETE_delay.resize(m_num_application);
+        task_start_time.resize(m_num_application);
+        task_end_time.resize(m_num_application);
 
         //initialize the latency matrix
         src_dst_latency = new int* [m_num_core];
@@ -199,6 +207,11 @@ GarnetNetwork::~GarnetNetwork()
     deletePointers(m_nis);
     deletePointers(m_networklinks);
     deletePointers(m_creditlinks);
+
+    delete [] m_application_name;
+    delete [] m_applicaton_execution_iterations;
+    delete [] m_num_task;
+    delete [] m_num_edge;
 
     for (int i=0;i<m_num_core;i++)
         delete [] src_dst_latency[i];
@@ -530,12 +543,8 @@ GarnetNetwork::functionalWrite(Packet *pkt)
     return num_functional_writes;
 }
 
-//for task graph traffic
 bool
-GarnetNetwork::loadTraffic(std::string filename){
-
-    int v[10];
-    float d[10];
+GarnetNetwork::readApplicationConfig(std::string filename){
 
     FILE *fp=fopen(filename.c_str(), "r");
     if (fp == NULL){
@@ -543,102 +552,152 @@ GarnetNetwork::loadTraffic(std::string filename){
         return false;
     }
 
-    //read the first line
-    //number of tasks, number of edges, number of PUs
-    int trace_type;
-
-    //get rid of headers
-    char ts[1000];
-    for (int i=0;i<15;i++)
-    {
-        fgets(ts,1000,fp);
+    //read the first line of all application information
+    fscanf(fp, "%d", &m_num_application);
+    fscanf(fp, "%d", &m_total_execution_iterations);
+    //read the filename and excution iterations of all application
+    m_application_name = new string[m_num_application];
+    m_applicaton_execution_iterations = new int[m_num_application];
+    for (int i=0;i<m_num_application;i++){
+        char app_name[256];
+        fscanf(fp, "%s", app_name);
+        m_application_name[i] = app_name;
+        fscanf(fp, "%d", &m_applicaton_execution_iterations[i]);
     }
+    fclose(fp);
 
-    fscanf(fp, "%d", &trace_type);assert(0==trace_type);
-        fscanf(fp, "%d", &m_num_proc);
-        fscanf(fp, "%d", &m_num_task);
-        fscanf(fp, "%d", &m_num_edge);
+    return true;
+}
 
-    assert( m_num_task>0 && m_num_edge>0 && m_num_proc>0 &&\
-    m_execution_iterations>0);
+//for task graph traffic
+bool
+GarnetNetwork::loadTraffic(std::string filename){
 
-    // read the next number of tasks lines: task info
-    for (int i=0; i<m_num_task; i++) {
-        fscanf(fp, "%d", &v[0]);    //task id
-        fscanf(fp, "%d", &v[1]);    //mapped proc id
-        fscanf(fp, "%d", &v[2]);    //shedule sequence number
-        fscanf(fp, "%f", &d[0]);    //mu & sigma for
-        fscanf(fp, "%f", &d[1]);    //task execution time distribution
+    m_num_task = new int[m_num_application];
+    m_num_edge = new int[m_num_application];
 
-        // add the task to the processor
-        GraphTask t;
-        t.set_id(v[0]);
-        t.set_proc_id(v[1]);
-        t.set_schedule(v[2]);
+    FILE *fp;
+    size_t separator = filename.rfind("/");
+    //directory name with "/"
+    std::string dir_name = filename.substr(0, separator+1);
 
-        t.set_statistical_execution_time(d[0], d[1]);
-        t.set_max_time(d[0]+2*d[1]);
+    for (int k=0;k<m_num_application;k++){
+        //the absolute path of the application file
+        std::string app_filename = dir_name+m_application_name[k];
 
-        t.set_required_times(m_execution_iterations);
-        t.initial();
-
-        int current_node_id = getNodeIdbyCoreId(v[1]);
-        m_nis[current_node_id]->add_task(t);
-    }
-
-    // read the next number of edges lines: communication info
-        for (int i=0; i<m_num_edge; i++){
-
-                fscanf(fp, "%d", &v[0]);//edge id
-                fscanf(fp, "%d", &v[1]);//src task id
-                fscanf(fp, "%d", &v[2]);//dst task id
-                fscanf(fp, "%d", &v[3]);//src proc id
-                fscanf(fp, "%d", &v[4]);//dst proc id
-                fscanf(fp, "%d", &v[5]);//out_memory_start_address
-                fscanf(fp, "%d", &v[6]);//out_memory_size
-                fscanf(fp, "%d", &v[7]);//in_memory_start_address
-                fscanf(fp, "%d", &v[8]);//in_memory_size
-
-                //mu & sigma for token size distribution
-                fscanf(fp, "%f", &d[0]);
-                fscanf(fp, "%f", &d[1]);
-                //lambda for pk generation interval distribution
-                fscanf(fp, "%f", &d[2]);
-
-                // construct the edge
-                GraphEdge e;
-                e.set_id(v[0]);
-                e.set_src_task_id(v[1]);
-                e.set_dst_task_id(v[2]);
-                e.set_src_proc_id(v[3]);
-                e.set_dst_proc_id(v[4]);
-                //Note Here! We not consider the size of the out memory
-                //e.set_out_memory(v[5],v[6]);
-                e.set_out_memory(v[5],INT_MAX);
-                e.set_in_memory(v[7],v[8]);
-
-
-                e.set_statistical_token_size(d[0], d[1]);
-                e.set_max_token_size(d[0]+2*d[1]);
-                e.set_statistical_pkt_interval(d[2]);
-                e.initial();
-
-                int src_node_id = getNodeIdbyCoreId(e.get_src_proc_id());
-                GraphTask &src_task = m_nis[src_node_id]->\
-            get_task_by_task_id(e.get_src_proc_id(), e.get_src_task_id());
-
-                int dst_node_id = getNodeIdbyCoreId(e.get_dst_proc_id());
-                GraphTask &dst_task = m_nis[dst_node_id]->\
-            get_task_by_task_id(e.get_dst_proc_id(), e.get_dst_task_id());
-
-                src_task.add_outgoing_edge(e);
-                dst_task.add_incoming_edge(e);
+        fp = fopen(app_filename.c_str(), "r");
+        if (fp == NULL){
+            fatal("Error opening the %s.stp file!", app_filename.c_str());
+            return false;
         }
 
-    for (int i=0; i < m_nodes/2; i++) {
-        m_nis[i]->sort_task_list();
-    }
+        int v[10];
+        float d[10];
+        //read the first line
+        //number of tasks, number of edges, number of PUs
+        int trace_type;
 
+        //get rid of headers
+        char ts[1000];
+        for (int i=0;i<15;i++)
+        {
+            fgets(ts,1000,fp);
+        }
+
+        fscanf(fp, "%d", &trace_type);assert(0==trace_type);
+            fscanf(fp, "%d", &m_num_proc);
+            fscanf(fp, "%d", &m_num_task[k]);
+            fscanf(fp, "%d", &m_num_edge[k]);
+
+        assert( m_num_task[k]>0 && m_num_edge[k]>0 && m_num_proc>0 &&\
+        m_applicaton_execution_iterations[k]>0);
+
+        // read the next number of tasks lines: task info
+        for (int i=0; i<m_num_task[k]; i++) {
+            fscanf(fp, "%d", &v[0]);    //task id
+            fscanf(fp, "%d", &v[1]);    //mapped proc id
+            fscanf(fp, "%d", &v[2]);    //shedule sequence number
+            fscanf(fp, "%f", &d[0]);    //mu & sigma for
+            fscanf(fp, "%f", &d[1]);    //task execution time distribution
+
+            // add the task to the processor
+            GraphTask t;
+            t.set_id(v[0]);
+            t.set_proc_id(v[1]);
+            t.set_schedule(v[2]);
+
+            t.set_statistical_execution_time(d[0], d[1]);
+            t.set_max_time(d[0]+2*d[1]);
+
+            t.set_required_times(m_applicaton_execution_iterations[k]);
+            //for multi-app
+            t.set_app_idx(k);
+            t.initial();
+
+            int current_node_id = getNodeIdbyCoreId(v[1]);
+            m_nis[current_node_id]->add_task(k, t);
+        }
+
+        // read the next number of edges lines: communication info
+            for (int i=0; i<m_num_edge[k]; i++){
+
+                    fscanf(fp, "%d", &v[0]);//edge id
+                    fscanf(fp, "%d", &v[1]);//src task id
+                    fscanf(fp, "%d", &v[2]);//dst task id
+                    fscanf(fp, "%d", &v[3]);//src proc id
+                    fscanf(fp, "%d", &v[4]);//dst proc id
+                    fscanf(fp, "%d", &v[5]);//out_memory_start_address
+                    fscanf(fp, "%d", &v[6]);//out_memory_size
+                    fscanf(fp, "%d", &v[7]);//in_memory_start_address
+                    fscanf(fp, "%d", &v[8]);//in_memory_size
+
+                    //mu & sigma for token size distribution
+                    fscanf(fp, "%f", &d[0]);
+                    fscanf(fp, "%f", &d[1]);
+                    //lambda for pk generation interval distribution
+                    fscanf(fp, "%f", &d[2]);
+
+                    // construct the edge
+                    GraphEdge e;
+                    e.set_id(v[0]);
+                    e.set_src_task_id(v[1]);
+                    e.set_dst_task_id(v[2]);
+                    e.set_src_proc_id(v[3]);
+                    e.set_dst_proc_id(v[4]);
+                    //Note Here! We not consider the size of the out memory
+                    //e.set_out_memory(v[5],v[6]);
+                    e.set_out_memory(v[5],INT_MAX);
+                    e.set_in_memory(v[7],v[8]);
+
+
+                    e.set_statistical_token_size(d[0], d[1]);
+                    e.set_max_token_size(d[0]+2*d[1]);
+                    e.set_statistical_pkt_interval(d[2]);
+
+                    e.set_app_idx(k);
+
+                    e.initial();
+
+                    int src_node_id = getNodeIdbyCoreId(e.get_src_proc_id());
+                    GraphTask &src_task = m_nis[src_node_id]->\
+                        get_task_by_task_id(e.get_src_proc_id(), \
+                        k, e.get_src_task_id());
+
+                    int dst_node_id = getNodeIdbyCoreId(e.get_dst_proc_id());
+                    GraphTask &dst_task = m_nis[dst_node_id]->\
+                        get_task_by_task_id(e.get_dst_proc_id(), k, \
+                        e.get_dst_task_id());
+
+                    src_task.add_outgoing_edge(e);
+                    dst_task.add_incoming_edge(e);
+            }
+
+        for (int i=0; i < m_nodes/2; i++) {
+            m_nis[i]->sort_task_list();
+        }
+
+        fclose(fp);
+    }
 
     unsigned int sum=0;
     printf("**********************\n");
@@ -653,23 +712,29 @@ GarnetNetwork::loadTraffic(std::string filename){
 
         for (int j=0;j<num_cores_in_node;j++){
             int core_id = m_nis[i]->get_core_id_by_index(j);
-            int task_list_len = m_nis[i]->get_task_list_length(j);
-            printf("Core Index: %5d\tCore Id: %5d\tCore Name: %7s\tTask List Length: %5d\n", \
+            printf("Core Index: %5d\tCore Id: %5d\tCore Name: %7s\n", \
                 j, m_nis[i]->get_core_id_by_index(j), \
-                m_nis[i]->get_core_name_by_index(j).c_str(), task_list_len);
-
-            for (int k=0;k<task_list_len;k++){
-                GraphTask &t = m_nis[i]->get_task_by_offset(core_id, k);
-                printf("\tTask %5d\tshedule %5d\n",\
-                    t.get_id(), t.get_schedule());
+                m_nis[i]->get_core_name_by_index(j).c_str());
+            for (int ii=0;ii<m_num_application;ii++){
+                int task_list_len = m_nis[i]->get_task_list_length(j, ii);
+                printf("\n");
+                printf("\tApplication: %s\n\n",m_application_name[ii].c_str());
+                for (int k=0;k<task_list_len;k++){
+                    GraphTask &t = m_nis[i]->get_task_by_offset(core_id,ii,k);
+                    printf("  \tTask %5d\tshedule %5d\n",\
+                        t.get_id(), t.get_schedule());
+                }
+                sum = sum + task_list_len;
             }
-
-            sum = sum + task_list_len;
         }
-
         printf("\n");
     }
     printf("The Total task is %d\n\n", sum);
+
+    int verify_task_sum=0;
+    for (int i=0;i<m_num_application;i++)
+        verify_task_sum += m_num_task[i];
+    assert(sum==verify_task_sum);
 
     //Core[0] task schdule
     /*
@@ -694,17 +759,18 @@ GarnetNetwork::wakeup(){
             vector<int> core_waiting_time;
             vector<string> core_waiting_name;
 
+
             for (int j=0;j<m_nodes/2;j++){
                 int num_cores_in_node = m_nis[j]->get_num_cores();
                 int node_task_waiting_time = 0;
                 for (int k=0;k<num_cores_in_node;k++){
-                    int task_list_len = m_nis[j]->get_task_list_length(k);
+                    int task_list_len = m_nis[j]->get_task_list_length(k, 0);
                     int core_id = m_nis[j]->get_core_id_by_index(k);
                     string core_name = m_nis[j]->get_core_name_by_index(k);
                     int core_task_waiting_time = 0;
                     for (int l=0;l<task_list_len;l++){
                         GraphTask& temp_task = m_nis[j]->\
-                            get_task_by_offset(core_id, l);
+                            get_task_by_offset(core_id, 0, l);
                         /*assert(m_execution_iterations == \
                         temp_task.get_token_received_size());*/
                         for (int m=0;m<m_execution_iterations;m++)
@@ -717,7 +783,7 @@ GarnetNetwork::wakeup(){
                 }
                 node_waiting_time.push_back(node_task_waiting_time);
             }
-
+/*
             printf("Node:\n");
             for (unsigned int i=0;i<node_waiting_time.size();i++){
                 printf("Node %3d \tWaiting time %5d\n",i,node_waiting_time[i]);
@@ -728,81 +794,90 @@ GarnetNetwork::wakeup(){
                 printf("Core %10s \tWaiting time %5d\n", \
                     core_waiting_name[i].c_str(), core_waiting_time[i]);
             }
-
-            int Average_ETE_delay=0;
-            for (int i=0;i<m_execution_iterations;i++){
-                if (m_print_task_execution_info)
+*/
+            for (int app_idx=0;app_idx<m_num_application;app_idx++){
+                int Average_ETE_delay=0;
+                for (int i=0;i<m_applicaton_execution_iterations[app_idx];i++){
+                    if (m_print_task_execution_info)
                     *(task_start_time_vs_id_iters->stream())<<"Execution\n";
-                int max_time=-1;
-                int min_time=2147483647;
-                int max_time_core_id=-1;
-                int max_time_task_id=-1;
-                int min_time_core_id=-1;
-                int min_time_task_id=-1;
-                for (int j=0;j<m_nodes/2;j++){
-                    int num_cores_in_node = m_nis[j]->get_num_cores();
-                    for (int k=0;k<num_cores_in_node;k++){
-                        int task_list_len = m_nis[j]->get_task_list_length(k);
-                        int core_id = m_nis[j]->get_core_id_by_index(k);
-                        for (int l=0;l<task_list_len;l++){
-                            GraphTask& temp_task = m_nis[j]->\
-                                get_task_by_offset(core_id, l);
-                            if (min_time > temp_task.get_start_time(i)){
-                                min_time_core_id = core_id;
-                                min_time_task_id = temp_task.get_id();
-                            }
-                            if (max_time < temp_task.get_end_time(i)){
-                                max_time_core_id = core_id;
-                                max_time_task_id = temp_task.get_id();
-                            }
-                            min_time = min(temp_task.get_start_time(i), \
-                                min_time);
-                            max_time = max(temp_task.get_end_time(i), \
-                                max_time);
-                            if (m_print_task_execution_info)
-                                *(task_start_time_vs_id_iters->stream())<<\
+                    int max_time=-1;
+                    int min_time=2147483647;
+                    int max_time_core_id=-1;
+                    int max_time_task_id=-1;
+                    int min_time_core_id=-1;
+                    int min_time_task_id=-1;
+                    for (int j=0;j<m_nodes/2;j++){
+                        int num_cores_in_node = m_nis[j]->get_num_cores();
+                        for (int k=0;k<num_cores_in_node;k++){
+                            int task_list_len = m_nis[j]->\
+                                get_task_list_length(k, app_idx);
+                            int core_id = m_nis[j]->get_core_id_by_index(k);
+                            for (int l=0;l<task_list_len;l++){
+                                GraphTask& temp_task = m_nis[j]->\
+                                    get_task_by_offset(core_id, app_idx, l);
+                                if (min_time > temp_task.get_start_time(i)){
+                                    min_time_core_id = core_id;
+                                    min_time_task_id = temp_task.get_id();
+                                }
+                                if (max_time < temp_task.get_end_time(i)){
+                                    max_time_core_id = core_id;
+                                    max_time_task_id = temp_task.get_id();
+                                }
+                                min_time = min(temp_task.get_start_time(i), \
+                                    min_time);
+                                max_time = max(temp_task.get_end_time(i), \
+                                    max_time);
+                                if (m_print_task_execution_info)
+                                    *(task_start_time_vs_id_iters->stream())<<\
                                     temp_task.get_start_time(i)<<"\t"<<\
                                     core_id<<"\t"<<temp_task.get_id()<<"\n";
+                            }
                         }
                     }
-                }
-                task_start_time.push_back(min_time);
-                task_end_time.push_back(max_time);
+                    task_start_time[app_idx].push_back(min_time);
+                    task_end_time[app_idx].push_back(max_time);
 
-                if (m_print_task_execution_info){
-                    *(task_start_end_time_vs_id->stream())<<"min\t"<<\
-                        min_time<<"\t"<<min_time_core_id<<"\t"\
-                        <<min_time_task_id<<"\n";
-                    *(task_start_end_time_vs_id->stream())<<"max\t"<<\
-                        max_time<<"\t"<<max_time_core_id<<"\t"\
-                        <<max_time_task_id<<"\n";
-                }
+                    if (m_print_task_execution_info){
+                        *(task_start_end_time_vs_id->stream())<<"min\t"<<\
+                            min_time<<"\t"<<min_time_core_id<<"\t"\
+                            <<min_time_task_id<<"\n";
+                        *(task_start_end_time_vs_id->stream())<<"max\t"<<\
+                            max_time<<"\t"<<max_time_core_id<<"\t"\
+                            <<max_time_task_id<<"\n";
+                    }
 
-                ETE_delay.push_back(max_time-min_time);
-                Average_ETE_delay=Average_ETE_delay+max_time-min_time;
+                    ETE_delay[app_idx].push_back(max_time-min_time);
+                    Average_ETE_delay=Average_ETE_delay+max_time-min_time;
+                }
+                Average_ETE_delay = Average_ETE_delay / \
+                    m_applicaton_execution_iterations[app_idx];
+                m_avg_ete_delay = Average_ETE_delay;
+
+
+                cout<<"info: Application - "<<m_application_name[app_idx]<<\
+                    " - has executed successfully !\n";
+                printf("Execution iterations: %3d\n", \
+                    m_applicaton_execution_iterations[app_idx]);
+                printf("Average Iteration Delay: %d\n", Average_ETE_delay);
+                for (int i=0; i<m_applicaton_execution_iterations[app_idx];\
+                i++){
+            /* printf("\tIteration %3d Applcation Execution Delay: %d\n", \
+                i, ETE_delay[i]);*/
+                    int s=task_start_time[app_idx][i];
+                    int e=task_end_time[app_idx][i];
+                    printf("\tIteration %3d \tApplication Start time %10d \t\
+                    Application End time %10d \t Applcation Execution Delay: \
+                    %d\n", i, s, e, ETE_delay[app_idx][i]);
+                }
             }
+
 
             simout.close(task_start_time_vs_id);
             simout.close(task_start_end_time_vs_id);
             simout.close(task_start_time_vs_id_iters);
 
-            Average_ETE_delay = Average_ETE_delay / m_execution_iterations;
-            m_avg_ete_delay = Average_ETE_delay;
-            m_ex_iters = m_execution_iterations;
 
-            cout<<"info: Application - "<<\
-            m_task_graph_file<<" - has executed successfully !\n";
-            printf("Execution iterations: %3d\n", m_execution_iterations);
-            printf("Average Iteration Delay: %d\n", Average_ETE_delay);
-            for (int i=0; i<m_execution_iterations;i++){
-                /* printf("\tIteration %3d Applcation Execution Delay: %d\n", \
-                    i, ETE_delay[i]);*/
-                int s=task_start_time[i];
-                int e=task_end_time[i];
-                printf("\tIteration %3d \tApplication Start time %10d \t\
-                Application End time %10d \t Applcation Execution Delay: \
-                %d\n", i, s, e, ETE_delay[i]);
-            }
+            m_ex_iters = m_execution_iterations;
 
             exitSimLoop("Network Task Graph Simulation Complete.");
         }
@@ -845,26 +920,26 @@ GarnetNetwork::checkApplicationFinish(){
         int num_cores_in_node = m_nis[i]->get_num_cores();
 
         for (int j=0;j<num_cores_in_node;j++){
-
-            int task_list_len = m_nis[i]->get_task_list_length(j);
             int core_id = m_nis[i]->get_core_id_by_index(j);
-
-            for (int k=0;k<task_list_len;k++){
-                GraphTask& temp_task = m_nis[i]->\
-                    get_task_by_offset(core_id, k);
-                if (temp_task.get_completed_times()>=\
-                    temp_task.get_required_times()){
-                    continue;
+            for (int app_idx=0;app_idx<m_num_application;app_idx++){
+                int task_list_len = m_nis[i]->get_task_list_length(j, app_idx);
+                for (int k=0;k<task_list_len;k++){
+                    GraphTask& temp_task = m_nis[i]->\
+                        get_task_by_offset(core_id, app_idx, k);
+                    if (temp_task.get_completed_times()>=\
+                        temp_task.get_required_times()){
+                        continue;
+                        }
+                    else{
+                        /*
+                        if (curCycle()>=88000){
+                            DPRINTF(TaskGraph, "Node [ %5d ] Core [ %5d ] \
+                                Task [ %5d ] not completed ! \n", \
+                                i, m_nis[i]->get_core_id_by_index(j), \
+                                    temp_task.get_id());
+                        }*/
+                        return false;
                     }
-                else{
-                    /*
-                    if (curCycle()>=88000){
-                        DPRINTF(TaskGraph, "Node [ %5d ] Core [ %5d ] \
-                            Task [ %5d ] not completed ! \n", \
-                            i, m_nis[i]->get_core_id_by_index(j), \
-                                temp_task.get_id());
-                    }*/
-                    return false;
                 }
             }
         }
@@ -911,7 +986,7 @@ GarnetNetwork::constructArchitecture(std::string filename){
         }
 
         if (!m_nis[node_id]->configureNode(num_cores_in_node, \
-            core_id, core_name, core_thread))
+            core_id, core_name, core_thread, m_num_application))
             return false;
 
         delete [] core_id;

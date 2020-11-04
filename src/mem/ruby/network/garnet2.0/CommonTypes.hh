@@ -71,6 +71,8 @@ struct TGInfo
     int edge_id;
     int token_id;
     int token_length_in_pkt;
+    //for multi-application
+    int app_idx;
 };
 
 struct token_info_type
