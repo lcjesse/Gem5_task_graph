@@ -108,6 +108,8 @@ NetworkInterface::~NetworkInterface()
     delete [] task_to_exec_round_robin;
     delete [] app_exec_rr;
     delete [] app_idx_in_thread_queue;
+
+    delete [] m_total_data_bits;
 }
 
 void
@@ -861,9 +863,13 @@ NetworkInterface::enqueueTaskInThreadQueue()
                             assert(dest_proc_id == current_core_id);
                         }
 
-                        int num_flits = ceil((double)temp_edge.\
+/*                        int num_flits = ceil((double)temp_edge.\
                         get_random_token_size() / \
-                        (m_net_ptr->getNiFlitSize() * 8));
+                        (m_net_ptr->getNiFlitSize() * 8));*/
+
+                        double token_size = temp_edge.get_random_token_size();
+                        int num_flits = ceil(token_size / (m_net_ptr->getNiFlitSize() * 8));
+                        m_total_data_bits[i] += token_size;
 
                         enqueueFlitsGeneratorBuffer(temp_edge, num_flits, \
                             execution_time);
@@ -982,9 +988,13 @@ NetworkInterface::enqueueTaskInThreadQueue()
                             assert(dest_proc_id == current_core_id);
                         }
 
-                        int num_flits = ceil((double)temp_edge.\
+                        /*int num_flits = ceil((double)temp_edge.\
                         get_random_token_size() / \
-                        (m_net_ptr->getNiFlitSize() * 8));
+                        (m_net_ptr->getNiFlitSize() * 8));*/
+
+                        double token_size = temp_edge.get_random_token_size();
+                        int num_flits = ceil(token_size / (m_net_ptr->getNiFlitSize() * 8));
+                        m_total_data_bits[i] += token_size;
 
                         enqueueFlitsGeneratorBuffer(temp_edge, num_flits, \
                             execution_time);
@@ -1384,6 +1394,9 @@ std::string* core_name, int* num_threads, int num_apps){
 
     //for multi-app
     app_exec_rr = new int [m_num_cores];
+
+    //for throughput
+    m_total_data_bits = new double [m_num_cores];
 
     for (int i=0;i<m_num_cores;i++){
         for (int j=0;j<num_threads[i];j++){

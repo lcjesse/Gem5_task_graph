@@ -97,6 +97,9 @@ class GarnetNetwork : public Network, public Consumer
 
     bool IsPrintTaskExecuInfo(){return m_print_task_execution_info;}
 
+    void PrintAppDelay();
+    void PrintTaskWaitingInfo();
+
     //for Ring Topology
     std::string getTopology() { return m_topology; }
 
@@ -184,6 +187,10 @@ class GarnetNetwork : public Network, public Consumer
     OutputStream *task_start_time_vs_id;
     OutputStream *task_start_end_time_vs_id;
     OutputStream *task_start_time_vs_id_iters;
+    //for the ete delay
+    OutputStream *app_delay_info;
+    //for the task waiting time
+    OutputStream *task_waiting_time_info;
 
   protected:
     // Configuration

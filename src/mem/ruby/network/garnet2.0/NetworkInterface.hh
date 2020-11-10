@@ -101,6 +101,14 @@ class NetworkInterface : public ClockedObject, public Consumer
     void printNodeConfiguation();
     int lookUpMap(std::map<int, int> m, int idx);
 
+    //for throughput
+    double get_throughput(int core_id){
+      int core_idx = lookUpMap(m_core_id_index, core_id);
+      double throughput = m_total_data_bits[core_idx] / (curCycle());
+      // unit is Gbps
+      return throughput;
+    }
+
   private:
     GarnetNetwork *m_net_ptr;
     const NodeID m_id;
@@ -166,6 +174,7 @@ class NetworkInterface : public ClockedObject, public Consumer
     std::map<int, int> m_core_id_thread;//core_id -> num_threads
     //for multi-applications
     int m_num_apps;
+    double* m_total_data_bits;
 
     //buffer for each core and
     //for inter-cluster and intra-cluster communication

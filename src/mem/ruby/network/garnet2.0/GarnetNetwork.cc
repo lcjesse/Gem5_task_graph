@@ -157,6 +157,12 @@ GarnetNetwork::init()
             create("task_start_end_time_vs_id.log", false, true);
         task_start_time_vs_id_iters = simout.\
             create("task_start_time_vs_id_iters.log", false, true);
+        //for app ete delay
+        app_delay_info = simout.\
+            create("application_delay_info.log", false, true);
+
+        task_waiting_time_info = simout.create("task_waiting_time_info.log", false, true);
+
         // write here because we need the total number of application before
         //configure nodes
         DPRINTF(TaskGraph, "Start Load Application Configuration !\n");
@@ -751,131 +757,20 @@ GarnetNetwork::loadTraffic(std::string filename){
 void
 GarnetNetwork::wakeup(){
     if (isTaskGraphEnabled()){
+
         if (! checkApplicationFinish())
         //each cycle would check finish
             scheduleEvent(Cycles(1));
         else {
-            vector<int> node_waiting_time;
-            vector<int> core_waiting_time;
-            vector<string> core_waiting_name;
 
-
-            for (int j=0;j<m_nodes/2;j++){
-                int num_cores_in_node = m_nis[j]->get_num_cores();
-                int node_task_waiting_time = 0;
-                for (int k=0;k<num_cores_in_node;k++){
-                    int task_list_len = m_nis[j]->get_task_list_length(k, 0);
-                    int core_id = m_nis[j]->get_core_id_by_index(k);
-                    string core_name = m_nis[j]->get_core_name_by_index(k);
-                    int core_task_waiting_time = 0;
-                    for (int l=0;l<task_list_len;l++){
-                        GraphTask& temp_task = m_nis[j]->\
-                            get_task_by_offset(core_id, 0, l);
-                        /*assert(m_execution_iterations == \
-                        temp_task.get_token_received_size());*/
-                        for (int m=0;m<m_execution_iterations;m++)
-                            core_task_waiting_time += \
-                                temp_task.get_task_waiting_time(m);
-                    }
-                    core_waiting_name.push_back(core_name);
-                    core_waiting_time.push_back(core_task_waiting_time);
-                    node_task_waiting_time += core_task_waiting_time;
-                }
-                node_waiting_time.push_back(node_task_waiting_time);
-            }
-/*
-            printf("Node:\n");
-            for (unsigned int i=0;i<node_waiting_time.size();i++){
-                printf("Node %3d \tWaiting time %5d\n",i,node_waiting_time[i]);
-            }
-
-            printf("Core:\n");
-            for (unsigned int i=0;i<core_waiting_name.size();i++){
-                printf("Core %10s \tWaiting time %5d\n", \
-                    core_waiting_name[i].c_str(), core_waiting_time[i]);
-            }
-*/
-            for (int app_idx=0;app_idx<m_num_application;app_idx++){
-                int Average_ETE_delay=0;
-                for (int i=0;i<m_applicaton_execution_iterations[app_idx];i++){
-                    if (m_print_task_execution_info)
-                    *(task_start_time_vs_id_iters->stream())<<"Execution\n";
-                    int max_time=-1;
-                    int min_time=2147483647;
-                    int max_time_core_id=-1;
-                    int max_time_task_id=-1;
-                    int min_time_core_id=-1;
-                    int min_time_task_id=-1;
-                    for (int j=0;j<m_nodes/2;j++){
-                        int num_cores_in_node = m_nis[j]->get_num_cores();
-                        for (int k=0;k<num_cores_in_node;k++){
-                            int task_list_len = m_nis[j]->\
-                                get_task_list_length(k, app_idx);
-                            int core_id = m_nis[j]->get_core_id_by_index(k);
-                            for (int l=0;l<task_list_len;l++){
-                                GraphTask& temp_task = m_nis[j]->\
-                                    get_task_by_offset(core_id, app_idx, l);
-                                if (min_time > temp_task.get_start_time(i)){
-                                    min_time_core_id = core_id;
-                                    min_time_task_id = temp_task.get_id();
-                                }
-                                if (max_time < temp_task.get_end_time(i)){
-                                    max_time_core_id = core_id;
-                                    max_time_task_id = temp_task.get_id();
-                                }
-                                min_time = min(temp_task.get_start_time(i), \
-                                    min_time);
-                                max_time = max(temp_task.get_end_time(i), \
-                                    max_time);
-                                if (m_print_task_execution_info)
-                                    *(task_start_time_vs_id_iters->stream())<<\
-                                    temp_task.get_start_time(i)<<"\t"<<\
-                                    core_id<<"\t"<<temp_task.get_id()<<"\n";
-                            }
-                        }
-                    }
-                    task_start_time[app_idx].push_back(min_time);
-                    task_end_time[app_idx].push_back(max_time);
-
-                    if (m_print_task_execution_info){
-                        *(task_start_end_time_vs_id->stream())<<"min\t"<<\
-                            min_time<<"\t"<<min_time_core_id<<"\t"\
-                            <<min_time_task_id<<"\n";
-                        *(task_start_end_time_vs_id->stream())<<"max\t"<<\
-                            max_time<<"\t"<<max_time_core_id<<"\t"\
-                            <<max_time_task_id<<"\n";
-                    }
-
-                    ETE_delay[app_idx].push_back(max_time-min_time);
-                    Average_ETE_delay=Average_ETE_delay+max_time-min_time;
-                }
-                Average_ETE_delay = Average_ETE_delay / \
-                    m_applicaton_execution_iterations[app_idx];
-                m_avg_ete_delay = Average_ETE_delay;
-
-
-                cout<<"info: Application - "<<m_application_name[app_idx]<<\
-                    " - has executed successfully !\n";
-                printf("Execution iterations: %3d\n", \
-                    m_applicaton_execution_iterations[app_idx]);
-                printf("Average Iteration Delay: %d\n", Average_ETE_delay);
-                for (int i=0; i<m_applicaton_execution_iterations[app_idx];\
-                i++){
-            /* printf("\tIteration %3d Applcation Execution Delay: %d\n", \
-                i, ETE_delay[i]);*/
-                    int s=task_start_time[app_idx][i];
-                    int e=task_end_time[app_idx][i];
-                    printf("\tIteration %3d \tApplication Start time %10d \t\
-                    Application End time %10d \t Applcation Execution Delay: \
-                    %d\n", i, s, e, ETE_delay[app_idx][i]);
-                }
-            }
-
+            PrintAppDelay();
+            PrintTaskWaitingInfo();
 
             simout.close(task_start_time_vs_id);
             simout.close(task_start_end_time_vs_id);
             simout.close(task_start_time_vs_id_iters);
-
+            simout.close(app_delay_info);
+            simout.close(task_waiting_time_info);
 
             m_ex_iters = m_execution_iterations;
 
@@ -1018,4 +913,205 @@ GarnetNetwork::getNodeIdbyCoreId(int core_id){
         fatal("GarnetNetwork: Error in finding Node Id by Core Id !");
     else
         return(m_core_id_node_id[core_id]);
+}
+
+// print each ete delay for log
+void
+GarnetNetwork::PrintAppDelay(){
+
+    for (int app_idx=0;app_idx<m_num_application;app_idx++){
+        int Average_ETE_delay=0;
+        for (int i=0;i<m_applicaton_execution_iterations[app_idx];i++){
+            if (m_print_task_execution_info)
+              *(task_start_time_vs_id_iters->stream())<<"Execution\n";
+            int max_time=-1;
+            int min_time=INT_MAX;
+            int max_time_core_id=-1;
+            int max_time_task_id=-1;
+            int min_time_core_id=-1;
+            int min_time_task_id=-1;
+            for (int j=0;j<m_nodes/2;j++){
+                int num_cores_in_node = m_nis[j]->get_num_cores();
+                for (int k=0;k<num_cores_in_node;k++){
+                    int task_list_len = m_nis[j]->\
+                        get_task_list_length(k, app_idx);
+                    int core_id = m_nis[j]->get_core_id_by_index(k);
+                    for (int l=0;l<task_list_len;l++){
+                        GraphTask& temp_task = m_nis[j]->\
+                            get_task_by_offset(core_id, app_idx, l);
+                        if (min_time > temp_task.get_start_time(i)){
+                            min_time_core_id = core_id;
+                            min_time_task_id = temp_task.get_id();
+                        }
+                        if (max_time < temp_task.get_end_time(i)){
+                            max_time_core_id = core_id;
+                            max_time_task_id = temp_task.get_id();
+                        }
+                        min_time = min(temp_task.get_start_time(i), min_time);
+                        max_time = max(temp_task.get_end_time(i), max_time);
+                        if (m_print_task_execution_info)
+                            *(task_start_time_vs_id_iters->stream())<<\
+                            temp_task.get_start_time(i)<<"\t"<<\
+                            core_id<<"\t"<<temp_task.get_id()<<"\n";
+                    }
+                }
+            }
+            task_start_time[app_idx].push_back(min_time);
+            task_end_time[app_idx].push_back(max_time);
+
+            if (m_print_task_execution_info){
+                *(task_start_end_time_vs_id->stream())<<"min\t"<<\
+                    min_time<<"\t"<<min_time_core_id<<"\t"\
+                    <<min_time_task_id<<"\n";
+                *(task_start_end_time_vs_id->stream())<<"max\t"<<\
+                    max_time<<"\t"<<max_time_core_id<<"\t"\
+                    <<max_time_task_id<<"\n";
+            }
+
+            ETE_delay[app_idx].push_back(max_time-min_time);
+            Average_ETE_delay=Average_ETE_delay+max_time-min_time;
+        }
+        Average_ETE_delay = Average_ETE_delay / m_applicaton_execution_iterations[app_idx];
+
+        m_avg_ete_delay = Average_ETE_delay;
+
+        cout<<"info: Application - "<<m_application_name[app_idx]<<" - has executed successfully !\n";
+        printf("Execution iterations: %3d\n", m_applicaton_execution_iterations[app_idx]);
+        printf("Average Iteration Delay: %d\n", Average_ETE_delay);
+
+        *(app_delay_info->stream())<<"Application - "<<m_application_name[app_idx]\
+            <<"\nExecution iterations: "<<setw(3)<<m_applicaton_execution_iterations[app_idx]\
+            <<"\nAverage Iteration Delay: "<<Average_ETE_delay<<"\n";
+
+        *(app_delay_info->stream())<<"\tIteration\tApplication Start time\tApplication End time\tApplcation Execution Delay\n";
+
+        for (int i=0; i<m_applicaton_execution_iterations[app_idx];i++){
+            int s=task_start_time[app_idx][i];
+            int e=task_end_time[app_idx][i];
+            printf("\tIteration %3d \tApplication Start time %10d \t\
+            Application End time %10d \t Applcation Execution Delay: \
+            %d\n", i, s, e, ETE_delay[app_idx][i]);
+            *(app_delay_info->stream())<<setw(13)<<i<<setw(25)<<s<<setw(22)<<e<<setw(30)<<ETE_delay[app_idx][i]<<"\n";
+        }
+        *(app_delay_info->stream())<<"\n";
+    }
+}
+
+void
+GarnetNetwork::PrintTaskWaitingInfo(){
+
+    int **node_waiting_time;
+    int **core_waiting_time;
+    string *core_waiting_name;
+    int *total_node_waiting_time;
+    int *total_core_waiting_time;
+
+    //new
+    node_waiting_time = new int* [m_num_application];
+    core_waiting_time = new int* [m_num_application];
+    core_waiting_name = new string [m_num_core];
+    total_core_waiting_time = new int [m_num_core];
+    total_node_waiting_time = new int [m_nodes/2];
+    //initial
+    for (int i=0;i<m_num_application;i++){
+        core_waiting_time[i] = new int [m_num_core];
+        node_waiting_time[i] = new int [m_nodes/2];
+    }
+
+    for (int i=0;i<m_num_application;i++){
+        for (int j=0;j<m_num_core;j++)
+            core_waiting_time[i][j] = 0;
+
+        for (int j=0;j<m_nodes/2;j++)
+            node_waiting_time[i][j] = 0;
+    }
+
+    for (int j=0;j<m_num_core;j++)
+        total_core_waiting_time[j] = 0;
+
+    for (int j=0;j<m_nodes/2;j++)
+        total_node_waiting_time[j] = 0;
+    //compute
+    for (int app_idx = 0; app_idx < m_num_application; app_idx++){
+        for (int j = 0; j < m_nodes / 2; j++){
+
+            int num_cores_in_node = m_nis[j]->get_num_cores();
+            int node_task_waiting_time = 0;
+
+            for (int k = 0; k < num_cores_in_node; k++){
+
+                int task_list_len = m_nis[j]->get_task_list_length(k, app_idx);
+                int core_id = m_nis[j]->get_core_id_by_index(k);
+                string core_name = m_nis[j]->get_core_name_by_index(k);
+                int core_task_waiting_time = 0;
+
+                for (int l = 0; l < task_list_len; l++){
+
+                    GraphTask &temp_task = m_nis[j]->get_task_by_offset(core_id, app_idx, l);
+                    for (int m = 0; m < m_applicaton_execution_iterations[app_idx]; m++)
+                        core_task_waiting_time += temp_task.get_task_waiting_time(m);
+                }
+
+                core_waiting_time[app_idx][core_id] = core_task_waiting_time;
+                core_waiting_name[core_id] = core_name;
+                node_task_waiting_time += core_task_waiting_time;
+                //for the core, ignore the app_idx
+                total_core_waiting_time[core_id] += core_task_waiting_time;
+            }
+
+            node_waiting_time[app_idx][j] = node_task_waiting_time;
+            //for the node, ignore the app_idx
+            total_node_waiting_time[j] += node_task_waiting_time;
+        }
+    }
+
+    //******Print to Log******
+    for (int app_idx = 0; app_idx < m_num_application; app_idx++){
+
+        *(task_waiting_time_info->stream()) << "Application - " << m_application_name[app_idx] \
+            << "\nCore_Id\tCore_Name\tTask_Waiting_Time\n";
+        for (int i=0;i<m_num_core;i++){
+            *(task_waiting_time_info->stream()) << setw(7) << i << "\t" << setw(9) << core_waiting_name[i]  \
+                << "\t" << setw(17) << core_waiting_time[app_idx][i] << "\n";
+        }
+
+        *(task_waiting_time_info->stream()) <<"\nNode_Id\tTask_Waiting_Time\tAll_Core_Id\n";
+        for (int i=0;i<m_nodes/2;i++){
+            *(task_waiting_time_info->stream()) << setw(7) << i  << "\t" << setw(17) << node_waiting_time[app_idx][i] << "\t\t";
+            int num_cores_in_node = m_nis[i]->get_num_cores();
+            for (int j=0;j<num_cores_in_node;j++){
+                int core_id = m_nis[i]->get_core_id_by_index(j);
+                *(task_waiting_time_info->stream()) << core_id << " ";
+            }
+            *(task_waiting_time_info->stream()) << "\n";
+        }
+        *(task_waiting_time_info->stream()) << "\n";
+    }
+
+    *(task_waiting_time_info->stream()) << "Total_Task_Waiting_Time\nCore_Id\tCore_Name\tTask_Waiting_Time\n";
+    for (int i=0;i<m_num_core;i++){
+        *(task_waiting_time_info->stream()) << setw(7) << i << "\t" << setw(9) << core_waiting_name[i]  \
+            << "\t" << setw(17) << total_core_waiting_time[i] << "\n";
+    }
+
+    *(task_waiting_time_info->stream()) <<"\nNode_Id\tTask_Waiting_Time\tAll_Core_Id\n";
+    for (int i=0;i<m_nodes/2;i++){
+        *(task_waiting_time_info->stream()) << setw(7) << i  << "\t" << setw(17) << total_node_waiting_time[i] << "\t\t";
+        int num_cores_in_node = m_nis[i]->get_num_cores();
+        for (int j=0;j<num_cores_in_node;j++){
+            int core_id = m_nis[i]->get_core_id_by_index(j);
+            *(task_waiting_time_info->stream()) << core_id << " ";
+        }
+        *(task_waiting_time_info->stream()) << "\n";
+    }
+
+    for (int i=0;i<m_num_application;i++){
+        delete [] core_waiting_time[i];
+        delete [] node_waiting_time[i];
+    }
+    delete [] core_waiting_time;
+    delete [] node_waiting_time;
+    delete [] core_waiting_name;
+    delete [] total_core_waiting_time;
+    delete [] total_node_waiting_time;
 }
