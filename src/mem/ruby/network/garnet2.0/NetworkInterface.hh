@@ -109,6 +109,14 @@ class NetworkInterface : public ClockedObject, public Consumer
       return throughput;
     }
 
+    //
+    int get_core_buffer_size(int core_idx){
+      return core_buffer[core_idx].size();
+    }
+
+    std::vector<int> core_buffer_sent;
+    void initializeTaskIdList();    
+
   private:
     GarnetNetwork *m_net_ptr;
     const NodeID m_id;
@@ -155,6 +163,7 @@ class NetworkInterface : public ClockedObject, public Consumer
     //for task graph traffic
     //task_list in each core
     std::vector<std::vector<std::vector<GraphTask> > > task_list;
+    std::vector<std::vector<std::vector<int> > > task_id_list;
     std::vector<std::vector<int> > task_in_waiting_list;
     std::vector<int> waiting_list_offset;
     //thread_queue[num_cores][num_threads]

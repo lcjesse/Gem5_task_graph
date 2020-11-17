@@ -645,6 +645,19 @@ NetworkInterface::sort_task_list()
     return 0;
 }
 
+void
+NetworkInterface::initializeTaskIdList(){
+    //record the task id in the task_id_list
+    for (unsigned i=0;i<task_list.size();i++){
+        for (unsigned j=0;j<task_list[i].size();j++){
+            task_id_list[i][j].resize(task_list[i][j].size());
+            for(unsigned k=0;k<task_list[i][j].size();k++){
+                task_id_list[i][j][k] = task_list[i][j][k].get_id();
+            }
+        }        
+    }
+}
+
 int
 NetworkInterface::get_task_offset_by_task_id(int core_id, int app_idx, int tid)
 {
@@ -741,13 +754,36 @@ NetworkInterface::enqueueTaskInThreadQueue()
             if (task_list[i][app_idx].size()<=0)
                 continue;
 
-            if (current_core_id==test_core){
+            if (current_core_id==-1){
                 printf("Cycle <<%lu>> rr_idx%3d\n",\
                     u_int64_t(curCycle()),task_to_exec_round_robin[i][app_idx]);
             }
 
             int round_robin_offset = 0;
 
+            //Bubble Sort for the task list
+/*            vector<int> temp_task_id_list(task_id_list[i][app_idx]);
+            for(unsigned int ii=0;ii<temp_task_id_list.size();ii++){
+                for(unsigned int jj=1;jj<temp_task_id_list.size()-ii;++jj){
+                    
+                    GraphTask &t1 = get_task_by_task_id(current_core_id, app_idx, temp_task_id_list[jj-1]);
+                    GraphTask &t2 = get_task_by_task_id(current_core_id, app_idx, temp_task_id_list[jj]);
+                    
+                    if(t1.get_completed_times()>t2.get_completed_times())
+                        swap(temp_task_id_list[jj-1], temp_task_id_list[jj]);
+                }
+            }*/
+
+/*
+            if(current_core_id==12){
+            for(unsigned int ii=0;ii<temp_task_id_list.size();ii++){
+                printf("%3d->%3d\n", ii, temp_task_id_list[ii]);
+            }
+            printf("\n");
+            }
+*/
+
+            //for(unsigned int j=0;j<temp_task_id_list.size();j++){
             for (unsigned int ii=0;ii<task_list[i][app_idx].size();ii++){
                 int j = (ii + task_to_exec_round_robin[i][app_idx]) % task_list[i][app_idx].size();
                 //task round robin refers the task offset which the previous is
@@ -755,8 +791,9 @@ NetworkInterface::enqueueTaskInThreadQueue()
                 //index would add 1.
 
                 GraphTask &c_task = task_list[i][app_idx][j];
-                assert(&(get_task_by_offset(current_core_id, app_idx, j))==\
-                    &(task_list[i][app_idx][j]) && &(task_list[i][app_idx][j]) == &(c_task));
+                assert(&(get_task_by_offset(current_core_id, app_idx, j))==&(task_list[i][app_idx][j]) && &(task_list[i][app_idx][j]) == &(c_task));
+
+                //GraphTask &c_task = get_task_by_task_id(current_core_id, app_idx, temp_task_id_list[j]);
 
                 if (current_core_id==test_core)
                     printf("Process Task %3d!\n", c_task.get_id());
@@ -796,7 +833,9 @@ NetworkInterface::enqueueTaskInThreadQueue()
                             c_str(), c_task.get_id());
                         break;
                     }*/
-                    assert(temp_edge.get_out_memory_remained() > 0);
+                    //assert(temp_edge.get_out_memory_remained() > 0);
+                    if (temp_edge.get_out_memory_remained() <= 0)
+                        break;
                 }
                 if (jj < c_task.get_size_of_outgoing_edge_list())
                     continue;
@@ -827,11 +866,9 @@ NetworkInterface::enqueueTaskInThreadQueue()
                         u_int64_t(curCycle())<<"\t"<<current_core_id<<\
                         "\t"<<c_task.get_id()<<"\n";
 
-                    int task_offset = get_task_offset_by_task_id(current_core_id, app_idx,\
-                        c_task.get_id());
-                    if (task_offset==task_to_exec_round_robin[i][app_idx]+\
-                        round_robin_offset)
-                        round_robin_offset += 1;
+                    int task_offset = get_task_offset_by_task_id(current_core_id, app_idx,c_task.get_id());
+                    if (task_offset==task_to_exec_round_robin[i][app_idx]+round_robin_offset)
+                       round_robin_offset += 1;
 
                     c_task.add_c_e_times();
                     task_in_thread_queue[i][not_busy_idx] = c_task.get_id();
@@ -940,10 +977,8 @@ NetworkInterface::enqueueTaskInThreadQueue()
                             u_int64_t(curCycle())<<"\t"<<current_core_id<<\
                             "\t"<<c_task.get_id()<<"\n";
                     //if the current task is the first task, move
-                    int task_offset = get_task_offset_by_task_id(current_core_id, app_idx,\
-                        c_task.get_id());
-                    if (task_offset==task_to_exec_round_robin[i][app_idx]+\
-                        round_robin_offset)
+                    int task_offset = get_task_offset_by_task_id(current_core_id, app_idx,c_task.get_id());
+                    if (task_offset==task_to_exec_round_robin[i][app_idx]+round_robin_offset)
                         round_robin_offset += 1;
 
                     c_task.add_c_e_times();
@@ -1002,8 +1037,7 @@ NetworkInterface::enqueueTaskInThreadQueue()
                     }
                 }
             }
-            task_to_exec_round_robin[i][app_idx] = (task_to_exec_round_robin[i][app_idx] + \
-                round_robin_offset) % task_list[i][app_idx].size();
+            task_to_exec_round_robin[i][app_idx] = (task_to_exec_round_robin[i][app_idx] + round_robin_offset) % task_list[i][app_idx].size();
         }
         app_exec_rr[i] = (app_exec_rr[i] + 1) % m_num_apps;
     }
@@ -1281,6 +1315,7 @@ NetworkInterface::coreSendFlitsOut(){
 
                 core_buffer[j].erase(core_buffer[j].begin());
                 core_buffer[j].shrink_to_fit();
+                core_buffer_sent[j] += 1;
 
                 crossbar_busy_out[dst_core_idx] = true;
                 crossbar_delay_timer[dst_core_idx] = 0;
@@ -1339,6 +1374,7 @@ NetworkInterface::coreSendFlitsOut(){
 
             core_buffer[j].erase(core_buffer[j].begin());
             core_buffer[j].shrink_to_fit();
+            core_buffer_sent[j] += 1;
 
             m_ni_out_vcs_enqueue_time[vc] = curCycle();
             m_out_vc_state[vc]->setState(ACTIVE_, curCycle());
@@ -1360,8 +1396,12 @@ std::string* core_name, int* num_threads, int num_apps){
     }
 
     task_list.resize(m_num_cores);
-    for (unsigned int i=0;i<task_list.size();i++)
+    task_id_list.resize(m_num_cores);
+    for (unsigned int i=0;i<task_list.size();i++){
         task_list[i].resize(num_apps);
+        task_id_list[i].resize(num_apps);
+    }
+
     m_num_apps = num_apps;
     task_in_waiting_list.resize(m_num_cores);
     waiting_list_offset.resize(m_num_cores);
@@ -1373,9 +1413,13 @@ std::string* core_name, int* num_threads, int num_apps){
     crossbar_delay_timer.resize(m_num_cores);
     crossbar_data.resize(m_num_cores);
 
+//
+    core_buffer_sent.resize(m_num_cores);
+
     for (int i=0;i<m_num_cores;i++){
         crossbar_busy_out[i] = false;
         crossbar_delay_timer[i] = -1;
+        core_buffer_sent[i] = 0;
     }
 
     //configure thread

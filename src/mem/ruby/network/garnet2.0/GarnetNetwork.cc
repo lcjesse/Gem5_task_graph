@@ -189,6 +189,10 @@ GarnetNetwork::init()
             cout<<"info: Load Traffic - "<<\
                 m_task_graph_file<<" - successfully !"<<endl;
 
+        for (int i=0;i<m_nodes/2;i++){
+            m_nis[i]->initializeTaskIdList();
+        }
+
         ETE_delay.resize(m_num_application);
         task_start_time.resize(m_num_application);
         task_end_time.resize(m_num_application);
@@ -672,7 +676,7 @@ GarnetNetwork::loadTraffic(std::string filename){
                     e.set_dst_proc_id(v[4]);
                     //Note Here! We not consider the size of the out memory
                     //e.set_out_memory(v[5],v[6]);
-                    e.set_out_memory(v[5],INT_MAX);
+                    e.set_out_memory(v[5],10);
                     e.set_in_memory(v[7],v[8]);
 
 
@@ -787,28 +791,45 @@ GarnetNetwork::scheduleWakeupAbsolute(Cycles time){
 bool
 GarnetNetwork::checkApplicationFinish(){
 
-    /*
+    
     if (curCycle()==88000){
     for (int i=0;i<m_nodes/2;i++){
         int num_cores_in_node = m_nis[i]->get_num_cores();
         for (int j=0;j<num_cores_in_node;j++){
-            int task_list_len = m_nis[i]->get_task_list_length(j);
-            if (task_list_len==0)    continue;
-            int core_id = m_nis[i]->get_core_id_by_index(j);
-            printf("Core [%5d]\n", core_id);
+            int core_id = m_nis[i]->get_core_id_by_index(j);            
+            if(core_id==12){
+            for (int app_idx=0;app_idx<m_num_application;app_idx++){
+                int task_list_len = m_nis[i]->get_task_list_length(j, app_idx);
+                if (task_list_len==0)    continue;
+                string core_name = m_nis[i]->get_core_name_by_index(j);
+                printf("Core [%5d] : %s\n", core_id, core_name.c_str());
                 for (int k=0;k<task_list_len;k++){
                 GraphTask& temp_task = m_nis[i]->\
-                    get_task_by_offset(core_id, k);
+                    get_task_by_offset(core_id, app_idx, k);
                     if (temp_task.get_completed_times()>=\
                     temp_task.get_required_times())
                     printf("\tCompleted Task [%3d]\n", temp_task.get_id());
                     else
                     printf("\tNot Completed Task [%3d]\n", temp_task.get_id());
                 }
+            }
+            }
         }
     }
     }
-    */
+
+    if(curCycle()%100==0){
+        for (int i=0;i<m_nodes/2;i++){
+        int num_cores_in_node = m_nis[i]->get_num_cores();
+        for (int j=0;j<num_cores_in_node;j++){
+            string core_name = m_nis[i]->get_core_name_by_index(j);
+            int core_buffer_size = m_nis[i]->get_core_buffer_size(j);
+            printf("Core Name %10s\tBuffer Size %10d\tBuffer Sent %10d\n", core_name.c_str(), core_buffer_size, m_nis[i]->core_buffer_sent[j]);
+        }
+        }
+        printf("\n");
+    }
+    
 
     for (int i=0;i<m_nodes/2;i++){
 
