@@ -58,6 +58,8 @@ class GarnetNetwork(RubyNetwork):
         task graph mode""");
     print_task_execution_info = Param.Bool(False, """enable print task
         execution information in the output directory.""")
+    vcs_for_ddr = Param.UInt32(0, "virtual channels for ddr per virtual network");
+
 
 class GarnetNetworkInterface(ClockedObject):
     type = 'GarnetNetworkInterface'
@@ -71,6 +73,9 @@ class GarnetNetworkInterface(ClockedObject):
                           "number of virtual networks")
     garnet_deadlock_threshold = Param.UInt32(Parent.garnet_deadlock_threshold,
                                       "network-level deadlock threshold")
+    vcs_for_ddr = Param.UInt32(Parent.vcs_for_ddr,
+                             "virtual channels for ddr per virtual network")
+
 
 class GarnetRouter(BasicRouter):
     type = 'GarnetRouter'
@@ -80,3 +85,6 @@ class GarnetRouter(BasicRouter):
                               "virtual channels per virtual network")
     virt_nets = Param.UInt32(Parent.number_of_virtual_networks,
                           "number of virtual networks")
+    vcs_for_ddr = Param.UInt32(Parent.vcs_for_ddr,
+                             "virtual channels for ddr per virtual network")
+

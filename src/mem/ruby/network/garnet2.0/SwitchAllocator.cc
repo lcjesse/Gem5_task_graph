@@ -292,7 +292,7 @@ SwitchAllocator::send_allowed(int inport, int invc, int outport, int outvc)
     bool has_credit = false;
     //add for Ring
     //here add vc_ch, doubt: -> or .
-    int vc_ch = m_input_unit[inport]->peekTopFlit(invc)->get_route().vc_chioce;
+    int vc_ch = m_input_unit[inport]->peekTopFlit(invc)->get_route().vc_choice;
 
     if (!has_outvc) {
 
@@ -358,7 +358,7 @@ SwitchAllocator::send_allowed(int inport, int invc, int outport, int outvc)
 int
 SwitchAllocator::vc_allocate(int outport, int inport, int invc)
 {
-    int vc_ch = m_input_unit[inport]->peekTopFlit(invc)->get_route().vc_chioce;
+    int vc_ch = m_input_unit[inport]->peekTopFlit(invc)->get_route().vc_choice;
     // Select a free VC from the output port
     //modified for Ring
     int outvc;

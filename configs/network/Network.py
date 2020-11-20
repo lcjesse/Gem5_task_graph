@@ -77,6 +77,9 @@ def define_options(parser):
     parser.add_option("--vcs-per-vnet", action="store", type="int", default=4,
                       help="""number of virtual channels per virtual network
                             inside garnet network.""")
+    parser.add_option("--vcs-for-ddr", action="store", type="int", default=0,
+                      help="""number of virtual channels for ddr per virtual 
+                            network inside garnet network.""")
     parser.add_option("--routing-algorithm", action="store", type="int",
                       default=0,
                       help="""routing algorithm in network.
@@ -121,6 +124,7 @@ def init_network(options, network, InterfaceClass):
     if options.network == "garnet2.0":
         network.num_rows = options.mesh_rows
         network.vcs_per_vnet = options.vcs_per_vnet
+        network.vcs_for_ddr = options.vcs_for_ddr
         network.ni_flit_size = options.link_width_bits / 8
         network.routing_algorithm = options.routing_algorithm
         network.garnet_deadlock_threshold = options.garnet_deadlock_threshold

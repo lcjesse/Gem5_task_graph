@@ -105,6 +105,7 @@ class OutputUnit : public Consumer
     PortDirection m_direction;
     int m_num_vcs;
     int m_vc_per_vnet;
+    int m_vc_for_ddr;
     Router *m_router;
     NetworkLink *m_out_link;
     CreditLink *m_credit_link;

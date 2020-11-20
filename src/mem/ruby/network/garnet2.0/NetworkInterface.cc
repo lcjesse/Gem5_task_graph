@@ -453,7 +453,7 @@ NetworkInterface::flitisizeMessage(MsgPtr msg_ptr, int vnet)
         route.src_router = m_router_id;
         route.dest_ni = destID;
         route.dest_router = m_net_ptr->get_router_id(destID);
-        route.vc_chioce = (route.dest_router >= route.src_router);
+        route.vc_choice = (route.dest_router >= route.src_router);
 
         // initialize hops_traversed to -1
         // so that the first router increments it to 0
@@ -1091,7 +1091,25 @@ int task_execution_time ){
     //route.dest_router = route.dest_ni;
     route.dest_router = m_net_ptr->get_router_id(route.dest_ni);
     route.hops_traversed = -1;
-    route.vc_chioce = (route.dest_router >= route.src_router);
+    
+    std::vector<int> ddr_posi = m_net_ptr -> get_ddr_posi();
+    int ddr_num = ddr_posi.size();
+    for (int i=0;i<ddr_num;i++)
+    {
+        //if src or dst is ddr, choose 0 or 1 
+        if((route.dest_router == ddr_posi[i])||(route.src_router == \
+        ddr_posi[i]))
+        {
+            route.vc_choice = (route.dest_router >= route.src_router);
+            break;
+        }
+        //if src or dst is not ddr, choose 2 or 3
+        else
+        {
+            route.vc_choice = (route.dest_router >= route.src_router) \
+            + 2;
+        }
+    }
 
     //specify the destinition
     NetDest net_dest;

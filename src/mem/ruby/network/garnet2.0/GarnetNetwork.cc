@@ -62,6 +62,7 @@ GarnetNetwork::GarnetNetwork(const Params *p)
     m_num_rows = p->num_rows;
     m_ni_flit_size = p->ni_flit_size;
     m_vcs_per_vnet = p->vcs_per_vnet;
+    m_vcs_for_ddr = p->vcs_for_ddr;
     m_buffers_per_data_vc = p->buffers_per_data_vc;
     m_buffers_per_ctrl_vc = p->buffers_per_ctrl_vc;
     m_routing_algorithm = p->routing_algorithm;
@@ -102,6 +103,13 @@ GarnetNetwork::GarnetNetwork(const Params *p)
         NetworkInterface *ni = safe_cast<NetworkInterface *>(*i);
         m_nis.push_back(ni);
         ni->init_net_ptr(this);
+    }
+
+    //if topology is ring, vc must be a multiple of two
+    if (m_topology == "Ring")
+    {
+        assert((m_vcs_per_vnet % 2 == 0) && (m_vcs_for_ddr % 2 == 0) &&\
+        (m_vcs_for_ddr < m_vcs_per_vnet));
     }
 }
 
@@ -895,6 +903,12 @@ GarnetNetwork::constructArchitecture(std::string filename){
             fscanf(fp, "%s", _core_name);
             core_name[j] = _core_name;
             fscanf(fp, "%d", &core_thread[j]);
+
+            std::string substring = "DDR";
+            std::string::size_type idx;
+            idx=core_name[j].find(substring);
+            if (idx != string::npos ) 
+                ddr_position.push_back(node_id);
 
             m_core_id_node_id.insert(make_pair(core_id[j], node_id));
 

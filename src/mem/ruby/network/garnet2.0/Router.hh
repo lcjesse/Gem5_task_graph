@@ -76,6 +76,7 @@ class Router : public BasicRouter, public Consumer
     int get_num_vcs()       { return m_num_vcs; }
     int get_num_vnets()     { return m_virtual_networks; }
     int get_vc_per_vnet()   { return m_vc_per_vnet; }
+    int get_vc_for_ddr()    { return m_vc_for_ddr;  }
     int get_num_inports()   { return m_input_unit.size(); }
     int get_num_outports()  { return m_output_unit.size(); }
     int get_id()            { return m_id; }
@@ -118,7 +119,7 @@ class Router : public BasicRouter, public Consumer
 
   private:
     Cycles m_latency;
-    int m_virtual_networks, m_num_vcs, m_vc_per_vnet;
+    int m_virtual_networks, m_num_vcs, m_vc_per_vnet, m_vc_for_ddr;
     GarnetNetwork *m_network_ptr;
 
     std::vector<InputUnit *> m_input_unit;

@@ -59,7 +59,7 @@ struct RouteInfo
     int dest_router;
     int hops_traversed;
     //add for Ring Topolgy
-    int vc_chioce;
+    int vc_choice;
 };
 
 #define INFINITE_ 10000
