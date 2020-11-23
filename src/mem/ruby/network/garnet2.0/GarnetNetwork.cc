@@ -682,9 +682,15 @@ GarnetNetwork::loadTraffic(std::string filename){
                     e.set_dst_task_id(v[2]);
                     e.set_src_proc_id(v[3]);
                     e.set_dst_proc_id(v[4]);
-                    //Note Here! We not consider the size of the out memory
+                    //Note Here! We just consider the size of the out memory for the source task
                     //e.set_out_memory(v[5],v[6]);
-                    e.set_out_memory(v[5],10);
+                    //e.set_out_memory(v[5],10);
+
+                    if (v[6]==-1)
+                        e.set_out_memory(v[5],INT_MAX);
+                    else
+                        e.set_out_memory(v[5],v[6]);
+
                     e.set_in_memory(v[7],v[8]);
 
 
@@ -799,8 +805,8 @@ GarnetNetwork::scheduleWakeupAbsolute(Cycles time){
 bool
 GarnetNetwork::checkApplicationFinish(){
 
-    
-    if (curCycle()==88000){
+/*
+    if (curCycle()==880000){
     for (int i=0;i<m_nodes/2;i++){
         int num_cores_in_node = m_nis[i]->get_num_cores();
         for (int j=0;j<num_cores_in_node;j++){
@@ -825,8 +831,9 @@ GarnetNetwork::checkApplicationFinish(){
         }
     }
     }
-
-    if(curCycle()%100==0){
+*/
+/*
+    if (curCycle()%100==0){
         for (int i=0;i<m_nodes/2;i++){
         int num_cores_in_node = m_nis[i]->get_num_cores();
         for (int j=0;j<num_cores_in_node;j++){
@@ -837,7 +844,7 @@ GarnetNetwork::checkApplicationFinish(){
         }
         printf("\n");
     }
-    
+*/
 
     for (int i=0;i<m_nodes/2;i++){
 
