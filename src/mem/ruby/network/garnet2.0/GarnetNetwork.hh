@@ -183,11 +183,11 @@ class GarnetNetwork : public Network, public Consumer
         src_dst_latency[src][dst] += latency;
     }
 
-    //return ddr position       ///////////////////////
-    std::vector<int> get_ddr_posi()
-    {
-        return ddr_position;
-    }
+    // //return ddr position       ///////////////////////
+    // std::vector<int> get_ddr_posi()
+    // {
+    //     return ddr_position;
+    // }
 
     //for debug
     OutputStream *task_start_time_vs_id;

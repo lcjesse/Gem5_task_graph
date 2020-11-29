@@ -684,12 +684,12 @@ GarnetNetwork::loadTraffic(std::string filename){
                     e.set_dst_proc_id(v[4]);
                     //Note Here! We just consider the size of the out memory for the source task
                     //e.set_out_memory(v[5],v[6]);
-                    //e.set_out_memory(v[5],10);
+                    e.set_out_memory(v[5],10);
 
-                    if (v[6]==-1)
-                        e.set_out_memory(v[5],INT_MAX);
-                    else
-                        e.set_out_memory(v[5],v[6]);
+                    // if (v[6]==-1)
+                    //     e.set_out_memory(v[5],INT_MAX);
+                    // else
+                    //     e.set_out_memory(v[5],v[6]);
 
                     e.set_in_memory(v[7],v[8]);
 
@@ -699,7 +699,6 @@ GarnetNetwork::loadTraffic(std::string filename){
                     e.set_statistical_pkt_interval(d[2]);
 
                     e.set_app_idx(k);
-
                     e.initial();
 
                     int src_node_id = getNodeIdbyCoreId(e.get_src_proc_id());
@@ -714,6 +713,27 @@ GarnetNetwork::loadTraffic(std::string filename){
 
                     src_task.add_outgoing_edge(e);
                     dst_task.add_incoming_edge(e);
+
+
+                    // Set vc_choice based on node ID and DDR position
+                    bool is_for_ddr = false;
+                    int num_ddr = ddr_position.size();
+                    int vc_choice;
+                    for (int i = 0; i < num_ddr; i++)
+                    {
+                        if((src_node_id == ddr_position[i])||(dst_node_id \
+                        == ddr_position[i]))
+                        {
+                            vc_choice = (dst_node_id >= src_node_id);
+                            is_for_ddr = true;
+                            break;
+                        }
+                    }
+                    if(is_for_ddr == false)
+                    {
+                        vc_choice = (dst_node_id >= src_node_id) + 2;
+                    }
+                    e.set_vc_choice(vc_choice);
             }
 
         for (int i=0; i < m_nodes/2; i++) {

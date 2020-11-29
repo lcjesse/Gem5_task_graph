@@ -215,6 +215,16 @@ GraphEdge::set_dst_proc_id(int pid)
         return 0;
 }
 
+// Set in GarnetNetwork
+int GraphEdge::set_vc_choice(int vid) 
+{ 
+        assert(vid >= 0);
+        vc_choice = vid;
+        return 0; 
+}
+// Return vc_choice for NI
+int GraphEdge::get_vc_choice() { return vc_choice; }
+
 int GraphEdge::get_max_token_size() { return max_token_size; }
 
 int

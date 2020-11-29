@@ -1082,6 +1082,7 @@ int task_execution_time ){
     int current_core_id = e.get_src_proc_id();
     int dst_core_id = e.get_dst_proc_id();
     int dst_node_id = m_net_ptr->getNodeIdbyCoreId(dst_core_id);
+    
 
     RouteInfo route;
     route.vnet = 2;
@@ -1091,7 +1092,10 @@ int task_execution_time ){
     //route.dest_router = route.dest_ni;
     route.dest_router = m_net_ptr->get_router_id(route.dest_ni);
     route.hops_traversed = -1;
-    
+
+    // Get vc_choice from edge
+    route.vc_choice = e.get_vc_choice();
+    /*
     std::vector<int> ddr_posi = m_net_ptr -> get_ddr_posi();
     int ddr_num = ddr_posi.size();
     for (int i=0;i<ddr_num;i++)
@@ -1110,6 +1114,7 @@ int task_execution_time ){
             + 2;
         }
     }
+    */
 
     //specify the destinition
     NetDest net_dest;
