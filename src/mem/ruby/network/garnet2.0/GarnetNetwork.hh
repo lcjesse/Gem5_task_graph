@@ -215,6 +215,7 @@ class GarnetNetwork : public Network, public Consumer
     std::string m_architecture_file;
     bool m_print_task_execution_info;
     uint32_t m_vcs_for_ddr;
+    bool m_vc_configuration_enable;
 
     //for task graph
     int m_num_proc;

@@ -51,6 +51,7 @@ OutputUnit::OutputUnit(int id, PortDirection direction, Router *router)
     m_vc_per_vnet = m_router->get_vc_per_vnet();
     m_out_buffer = new flitBuffer();
     m_vc_for_ddr = m_router->get_vc_for_ddr();
+    m_vc_configuration_enable = m_router->get_vc_configuration_enable();
 
     for (int i = 0; i < m_num_vcs; i++) {
         m_outvc_state.push_back(new OutVcState(i, m_router->get_net_ptr()));
@@ -127,80 +128,108 @@ OutputUnit::select_free_vc(int vnet)
 bool
 OutputUnit::has_free_vc(int vnet, int vc_choice)
 {
-    int vc_base = vnet*m_vc_per_vnet;
-    int vc_start, vc_end;
-    if ((m_vc_for_ddr == 0)||(vc_choice < 2))
-    {
-        vc_choice += 2; //if no vc for ddr, all use same set of vc
-    }
+    if(m_vc_configuration_enable){
+        int vc_base = vnet*m_vc_per_vnet;
+        int vc_start, vc_end;
+        if ((m_vc_for_ddr == 0)||(vc_choice < 2))
+        {
+            vc_choice += 2; //if no vc for ddr, all use same set of vc
+        }
 
-    if (vc_choice == 0)
-    {
-        vc_start = 0;
-        vc_end = m_vc_for_ddr / 2;
-    }
-    else if (vc_choice == 1)
-    {
-        vc_start = m_vc_for_ddr / 2;
-        vc_end = m_vc_for_ddr;
-    }
-    else if (vc_choice == 2)
-    {
-        vc_start = m_vc_for_ddr;
-        vc_end = (m_vc_for_ddr + m_vc_per_vnet) / 2;
-    }
-    else //if (vc_choice == 3)
-    {
-        vc_start = (m_vc_for_ddr + m_vc_per_vnet) / 2;
-        vc_end = m_vc_per_vnet;
-    }
+        switch(vc_choice){
+            case 0:
+                vc_start = 0;
+                vc_end = m_vc_for_ddr / 2;
+                break;
+            case 1:
+                vc_start = m_vc_for_ddr / 2;
+                vc_end = m_vc_for_ddr;
+                break;
+            case 2:
+                vc_start = m_vc_for_ddr;
+                vc_end = (m_vc_for_ddr + m_vc_per_vnet) / 2;
+                break;
+            case 3:
+                vc_start = (m_vc_for_ddr + m_vc_per_vnet) / 2;
+                vc_end = m_vc_per_vnet;
+                break;
+            default:
+                fatal("Vc choice error in has_free_vc()! Should in range [0, 3]!");
+                break;
+        }
 
-    for (int vc = (vc_base + vc_start); vc < (vc_base + vc_end); vc++) {
-        if (is_vc_idle(vc, m_router->curCycle()))
+        for (int vc = (vc_base + vc_start); vc < (vc_base + vc_end); vc++) {
+            if (is_vc_idle(vc, m_router->curCycle()))
+                return true;
+        }
+
+        return false;
+    }
+    else{
+        int vc_base = vnet*m_vc_per_vnet;
+        int vc = vc_base + vc_choice;
+        if (is_vc_idle(vc, m_router->curCycle()))//only check vc_choice
             return true;
+        //find the vc number of its own net, for example for vnet1,
+        //vc num begin with 1*2=2 to 1*2+2==4
+        return false;
     }
-
-    return false;
 }
 
 // Assign a free output VC to the winner of Switch Allocation
 int
 OutputUnit::select_free_vc(int vnet, int vc_choice)
 {
-    int vc_base = vnet*m_vc_per_vnet;
-    int vc_start, vc_end;
-    if ((m_vc_for_ddr == 0)||(vc_choice < 2))
-    {
-        vc_choice += 2; //if no vc for ddr, all use same set of vc
+    if(m_vc_configuration_enable){  //enable Ring network to choose more vc and enable vc for ddr
+        int vc_base = vnet*m_vc_per_vnet;
+        int vc_start, vc_end;
+        if ((m_vc_for_ddr == 0)||(vc_choice < 2))
+        {
+            vc_choice += 2; //if no vc for ddr, all use same set of vc
+        }
+        switch(vc_choice){
+            case 0:
+                vc_start = 0;
+                vc_end = m_vc_for_ddr / 2;
+                break;
+            case 1:
+                vc_start = m_vc_for_ddr / 2;
+                vc_end = m_vc_for_ddr;
+                break;
+            case 2:
+                vc_start = m_vc_for_ddr;
+                vc_end = (m_vc_for_ddr + m_vc_per_vnet) / 2;
+                break;
+            case 3:
+                vc_start = (m_vc_for_ddr + m_vc_per_vnet) / 2;
+                vc_end = m_vc_per_vnet;
+                break;
+            default:
+                fatal("Vc choice error in select_free_vc()! Should in range [0, 3]!");
+                break;
+        }
+        for (int vc = (vc_base + vc_start); vc < (vc_base + vc_end); vc++) {
+            if (is_vc_idle(vc, m_router->curCycle())) {
+                m_outvc_state[vc]->setState(ACTIVE_, m_router->curCycle());
+                return vc;
+            }
+        }
+
+        return -1;
     }
-    if (vc_choice == 0)
-    {
-        vc_start = 0;
-        vc_end = m_vc_for_ddr / 2;
-    }
-    else if (vc_choice == 1)
-    {
-        vc_start = m_vc_for_ddr / 2;
-        vc_end = m_vc_for_ddr;
-    }
-    else if (vc_choice == 2)
-    {
-        vc_start = m_vc_for_ddr;
-        vc_end = (m_vc_for_ddr + m_vc_per_vnet) / 2;
-    }
-    else// if (vc_choice == 3)
-    {
-        vc_start = (m_vc_for_ddr + m_vc_per_vnet) / 2;
-        vc_end = m_vc_per_vnet;
-    }
-    for (int vc = (vc_base + vc_start); vc < (vc_base + vc_end); vc++) {
-        if (is_vc_idle(vc, m_router->curCycle())) {
+    else{       //m_vc_configuration_enable off
+        int vc_base = vnet*m_vc_per_vnet;
+        int vc = vc_base + vc_choice;
+        if (is_vc_idle(vc, m_router->curCycle()))//only check vc_choice
+        {
             m_outvc_state[vc]->setState(ACTIVE_, m_router->curCycle());
             return vc;
         }
+        //find free vc and set outvc active VIP!!!
+        //HERE we set vc vc_choice and always check if it is idle
+        return -1;
     }
-
-    return -1;
+    
 }
 
 // bool

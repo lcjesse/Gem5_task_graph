@@ -74,7 +74,7 @@ def define_options(parser):
     parser.add_option("--link-width-bits", action="store", type="int",
                       default=128,
                       help="width in bits for all links inside garnet.")
-    parser.add_option("--vcs-per-vnet", action="store", type="int", default=4,
+    parser.add_option("--vcs-per-vnet", action="store", type="int", default=2,
                       help="""number of virtual channels per virtual network
                             inside garnet network.""")
     parser.add_option("--vcs-for-ddr", action="store", type="int", default=0,
@@ -93,6 +93,10 @@ def define_options(parser):
     parser.add_option("--garnet-deadlock-threshold", action="store",
                       type="int", default=50000,
                       help="network-level deadlock threshold.")
+    parser.add_option("--vc-configuration-enable", action="store_true",
+                      default=False,
+                      help="""enable Ring network to choose more vc and 
+                            enable vc for ddr.""")
 
 
 def create_network(options, ruby):
@@ -135,6 +139,7 @@ def init_network(options, network, InterfaceClass):
         network.topology = options.topology
         network.architecture_file = options.architecture_file
         network.print_task_execution_info = options.print_task_execution_info
+        network.vc_configuration_enable = options.vc_configuration_enable
 
     if options.network == "simple":
         network.setup_buffers()

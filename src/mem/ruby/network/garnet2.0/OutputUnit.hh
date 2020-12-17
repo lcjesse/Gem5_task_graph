@@ -106,6 +106,7 @@ class OutputUnit : public Consumer
     int m_num_vcs;
     int m_vc_per_vnet;
     int m_vc_for_ddr;
+    bool m_vc_configuration_enable;
     Router *m_router;
     NetworkLink *m_out_link;
     CreditLink *m_credit_link;

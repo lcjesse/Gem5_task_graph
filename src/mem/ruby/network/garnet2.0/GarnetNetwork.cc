@@ -73,6 +73,7 @@ GarnetNetwork::GarnetNetwork(const Params *p)
     m_topology = p->topology;
     m_architecture_file = p->architecture_file;
     m_print_task_execution_info = p->print_task_execution_info;
+    m_vc_configuration_enable = p->vc_configuration_enable;
 
     m_enable_fault_model = p->enable_fault_model;
     if (m_enable_fault_model)
@@ -659,81 +660,82 @@ GarnetNetwork::loadTraffic(std::string filename){
         // read the next number of edges lines: communication info
             for (int i=0; i<m_num_edge[k]; i++){
 
-                    fscanf(fp, "%d", &v[0]);//edge id
-                    fscanf(fp, "%d", &v[1]);//src task id
-                    fscanf(fp, "%d", &v[2]);//dst task id
-                    fscanf(fp, "%d", &v[3]);//src proc id
-                    fscanf(fp, "%d", &v[4]);//dst proc id
-                    fscanf(fp, "%d", &v[5]);//out_memory_start_address
-                    fscanf(fp, "%d", &v[6]);//out_memory_size
-                    fscanf(fp, "%d", &v[7]);//in_memory_start_address
-                    fscanf(fp, "%d", &v[8]);//in_memory_size
+                fscanf(fp, "%d", &v[0]);//edge id
+                fscanf(fp, "%d", &v[1]);//src task id
+                fscanf(fp, "%d", &v[2]);//dst task id
+                fscanf(fp, "%d", &v[3]);//src proc id
+                fscanf(fp, "%d", &v[4]);//dst proc id
+                fscanf(fp, "%d", &v[5]);//out_memory_start_address
+                fscanf(fp, "%d", &v[6]);//out_memory_size
+                fscanf(fp, "%d", &v[7]);//in_memory_start_address
+                fscanf(fp, "%d", &v[8]);//in_memory_size
 
-                    //mu & sigma for token size distribution
-                    fscanf(fp, "%f", &d[0]);
-                    fscanf(fp, "%f", &d[1]);
-                    //lambda for pk generation interval distribution
-                    fscanf(fp, "%f", &d[2]);
+                //mu & sigma for token size distribution
+                fscanf(fp, "%f", &d[0]);
+                fscanf(fp, "%f", &d[1]);
+                //lambda for pk generation interval distribution
+                fscanf(fp, "%f", &d[2]);
 
-                    // construct the edge
-                    GraphEdge e;
-                    e.set_id(v[0]);
-                    e.set_src_task_id(v[1]);
-                    e.set_dst_task_id(v[2]);
-                    e.set_src_proc_id(v[3]);
-                    e.set_dst_proc_id(v[4]);
-                    //Note Here! We just consider the size of the out memory for the source task
-                    //e.set_out_memory(v[5],v[6]);
-                    e.set_out_memory(v[5],10);
+                // construct the edge
+                GraphEdge e;
+                e.set_id(v[0]);
+                e.set_src_task_id(v[1]);
+                e.set_dst_task_id(v[2]);
+                e.set_src_proc_id(v[3]);
+                e.set_dst_proc_id(v[4]);
+                //Note Here! We just consider the size of the out memory for the source task
+                //e.set_out_memory(v[5],v[6]);
+                e.set_out_memory(v[5],10);
 
-                    // if (v[6]==-1)
-                    //     e.set_out_memory(v[5],INT_MAX);
-                    // else
-                    //     e.set_out_memory(v[5],v[6]);
+                // if (v[6]==-1)
+                //     e.set_out_memory(v[5],INT_MAX);
+                // else
+                //     e.set_out_memory(v[5],v[6]);
 
-                    e.set_in_memory(v[7],v[8]);
-
-
-                    e.set_statistical_token_size(d[0], d[1]);
-                    e.set_max_token_size(d[0]+2*d[1]);
-                    e.set_statistical_pkt_interval(d[2]);
-
-                    e.set_app_idx(k);
-                    e.initial();
-
-                    int src_node_id = getNodeIdbyCoreId(e.get_src_proc_id());
-                    GraphTask &src_task = m_nis[src_node_id]->\
-                        get_task_by_task_id(e.get_src_proc_id(), \
-                        k, e.get_src_task_id());
-
-                    int dst_node_id = getNodeIdbyCoreId(e.get_dst_proc_id());
-                    GraphTask &dst_task = m_nis[dst_node_id]->\
-                        get_task_by_task_id(e.get_dst_proc_id(), k, \
-                        e.get_dst_task_id());
-
-                    src_task.add_outgoing_edge(e);
-                    dst_task.add_incoming_edge(e);
+                e.set_in_memory(v[7],v[8]);
 
 
-                    // Set vc_choice based on node ID and DDR position
+                e.set_statistical_token_size(d[0], d[1]);
+                e.set_max_token_size(d[0]+2*d[1]);
+                e.set_statistical_pkt_interval(d[2]);
+
+                e.set_app_idx(k);
+                e.initial();
+
+                int src_node_id = getNodeIdbyCoreId(e.get_src_proc_id());
+                GraphTask &src_task = m_nis[src_node_id]->\
+                    get_task_by_task_id(e.get_src_proc_id(), \
+                    k, e.get_src_task_id());
+
+                int dst_node_id = getNodeIdbyCoreId(e.get_dst_proc_id());
+                GraphTask &dst_task = m_nis[dst_node_id]->\
+                    get_task_by_task_id(e.get_dst_proc_id(), k, \
+                    e.get_dst_task_id());
+
+                src_task.add_outgoing_edge(e);
+                dst_task.add_incoming_edge(e);
+
+                // Set vc_choice based on vc configuration mode and node ID and DDR position
+                int vc_choice;
+                if(m_vc_configuration_enable){
                     bool is_for_ddr = false;
                     int num_ddr = ddr_position.size();
-                    int vc_choice;
-                    for (int i = 0; i < num_ddr; i++)
-                    {
+                    for (int i = 0; i < num_ddr; i++){
                         if((src_node_id == ddr_position[i])||(dst_node_id \
-                        == ddr_position[i]))
-                        {
+                        == ddr_position[i])){
                             vc_choice = (dst_node_id >= src_node_id);
                             is_for_ddr = true;
                             break;
                         }
                     }
-                    if(is_for_ddr == false)
-                    {
+                    if(is_for_ddr == false){
                         vc_choice = (dst_node_id >= src_node_id) + 2;
                     }
-                    e.set_vc_choice(vc_choice);
+                }
+                else{
+                    vc_choice = (dst_node_id >= src_node_id);
+                }
+                e.set_vc_choice(vc_choice);
             }
 
         for (int i=0; i < m_nodes/2; i++) {
