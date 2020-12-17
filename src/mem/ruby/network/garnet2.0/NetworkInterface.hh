@@ -111,7 +111,7 @@ class NetworkInterface : public ClockedObject, public Consumer
 
     //
     int get_core_buffer_size(int core_idx){
-      return core_buffer[core_idx].size();
+      return (core_buffer[core_idx].size()+cluster_buffer[core_idx].size());
     }
 
     std::vector<int> core_buffer_sent;
@@ -153,6 +153,8 @@ class NetworkInterface : public ClockedObject, public Consumer
     bool checkStallQueue();
     bool flitisizeMessage(MsgPtr msg_ptr, int vnet);
     int calculateVC(int vnet);
+    //Get the remained vcs, make corebuffer can enqueue more flits in buffer
+    int getNumRemainedIdleVC(int vnet);
 
     void scheduleOutputLink();
     void checkReschedule();
@@ -186,8 +188,10 @@ class NetworkInterface : public ClockedObject, public Consumer
     double* m_total_data_bits;
 
     //buffer for each core and
-    //for inter-cluster and intra-cluster communication
+    //for intra-cluster communication
     std::vector<std::vector<flit* > > core_buffer;
+    //for inter-cluster communication
+    std::vector<std::vector<flit* > > cluster_buffer;
     std::vector<bool > crossbar_busy_out;
     std::vector<int > crossbar_delay_timer;
     std::vector<std::vector<flit* > > crossbar_data;
@@ -215,6 +219,8 @@ class NetworkInterface : public ClockedObject, public Consumer
     void updateGeneratorBuffer();
 
     void coreSendFlitsOut();
+    void intraClusterOut();
+    void interClusterOut();
 };
 
 #endif // __MEM_RUBY_NETWORK_GARNET2_0_NETWORKINTERFACE_HH__

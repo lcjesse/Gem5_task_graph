@@ -503,6 +503,17 @@ NetworkInterface::calculateVC(int vnet)
     return -1;
 }
 
+//
+int
+NetworkInterface::getNumRemainedIdleVC(int vnet)
+{
+    int remainded_num_vc = 0;
+    for (int i = 0; i < m_vc_per_vnet; i++) {
+        if(m_out_vc_state[(vnet*m_vc_per_vnet) + i]->isInState(IDLE_, curCycle()))
+            remainded_num_vc++;
+    }
+    return remainded_num_vc;
+}
 
 /** This function looks at the NI buffers
  *  if some buffer has flits which are ready to traverse the link in the next
@@ -528,6 +539,7 @@ NetworkInterface::scheduleOutputLink()
             int t_vnet = get_vnet(vc);
             int vc_base = t_vnet * m_vc_per_vnet;
 
+            //In Garnet_standalone, the vnet2 isVNetOrdered=false
             if (m_net_ptr->isVNetOrdered(t_vnet)) {
                 for (int vc_offset = 0; vc_offset < m_vc_per_vnet;
                      vc_offset++) {
@@ -1229,9 +1241,13 @@ NetworkInterface::updateGeneratorBuffer(){
                         printf("record pkt Error! \n");
                     //Note: if flit useless, remeber to delete !!
                     delete fl;
-                }else
-                    core_buffer[i].push_back(fl);
-
+                }else {
+                    if(dst_node_id == m_id)
+                        core_buffer[i].push_back(fl); 
+                    else
+                        cluster_buffer[i].push_back(fl);
+                }
+                    
                 delete generator_buffer[i].at(j);
                 generator_buffer[i].erase(generator_buffer[i].begin()+j);
                 generator_buffer[i].shrink_to_fit();
@@ -1246,6 +1262,7 @@ NetworkInterface::coreSendFlitsOut(){
     //core send flits out cluster via m_ni_out_vcs,
     //send flits in cluster via crossbar
 
+    bool all_crossbar_busy = true; 
     for (int i=0;i<m_num_cores;i++){
         if (crossbar_delay_timer[i] != -1){
             //timer -1 means not used, not busy
@@ -1289,9 +1306,31 @@ NetworkInterface::coreSendFlitsOut(){
             }else{
                 crossbar_delay_timer[i] = crossbar_delay_timer[i] + 1;
             }
+        } else {
+            all_crossbar_busy = false;
         }
     }
 
+    if(m_num_cores>1 && !all_crossbar_busy)
+        intraClusterOut();
+
+    //Note! just return for vnet2
+    int remained_num_vc = getNumRemainedIdleVC(2);
+    for(int i=0;i<remained_num_vc;i++){        
+        interClusterOut();
+
+        if(calculateVC(2)==-1){
+            assert(getNumRemainedIdleVC(2)==0);
+            break;
+        }
+    }
+
+    core_buffer_round_robin = (core_buffer_round_robin + 1) % m_num_cores;
+}
+
+void
+NetworkInterface::intraClusterOut()
+{
     for (int i=0;i<m_num_cores;i++){
         int j = (i + core_buffer_round_robin) % m_num_cores;
         int current_core_id = lookUpMap(m_index_core_id, j);
@@ -1306,91 +1345,26 @@ NetworkInterface::coreSendFlitsOut(){
         GraphEdge& out_edge = src_task.\
             get_outgoing_edge_by_eid(fl->get_tg_info().edge_id);
         int dst_core_id = out_edge.get_dst_proc_id();
-        int dst_node_id = fl->get_route().dest_ni;
-
-        //send to the same core handled by generator buffer
-        assert(dst_core_id != current_core_id);
-
-        if (dst_node_id == m_id){
-            //intra-cluster communication
-            int dst_core_idx = lookUpMap(m_core_id_index, dst_core_id);
-            //because send to other core, so first record sent pkt
-            if (!crossbar_busy_out[dst_core_idx]){
-                //the output is not busy
-                if (!out_edge.record_sent_pkt(fl))
-                    continue;
-                //record the token, after all pkt sent, out memory read pointer
-                //move
-
-                int num_flits = fl->get_size();
-
-                for (int j=0;j<num_flits;j++){
-                    flit* generated_fl = new flit(j, -1, 2, fl->get_route(), \
-                    num_flits, fl->get_msg_ptr(), curCycle(), fl->get_tg_info());
-                    //the fl enqueue time record the time flit should be sent
-                    generated_fl->set_src_delay(curCycle() - \
-                        fl->get_enqueue_time());
-
-                    crossbar_data[dst_core_idx].push_back(generated_fl);
-                }
-
-                delete fl;
-
-                core_buffer[j].erase(core_buffer[j].begin());
-                core_buffer[j].shrink_to_fit();
-                core_buffer_sent[j] += 1;
-
-                crossbar_busy_out[dst_core_idx] = true;
-                crossbar_delay_timer[dst_core_idx] = 0;
-
-                DPRINTF(TaskGraph, "Node [ %3d ] Core [ %3d ] Task %5d send \
-                    flit to Core [ %3d ] by Crossbar port [ %3d ]\n", \
-                    m_id, current_core_id, fl->get_tg_info().src_task, \
-                    dst_core_id, dst_core_idx);
-            }else{
-                //wait the output of crossbar to idle state
+            
+        int dst_core_idx = lookUpMap(m_core_id_index, dst_core_id);
+        //because send to other core, so first record sent pkt
+        if (!crossbar_busy_out[dst_core_idx]){
+        //the output is not busy
+            if (!out_edge.record_sent_pkt(fl))
                 continue;
-            }
-        }else{
-            //inter-cluster communication
-            int vc=calculateVC(fl->get_vnet());
-
-            //without avilable vc
-            if (vc == -1)
-                continue;
-
-            /*printf("To-do: Node [ %3d ] Core [ %3d ] Task %5d send \
-                     flit to Node [ %3d ] Core [ %3d ]\n", m_id, current_core_id, \
-                     fl->get_tg_info().src_task, dst_node_id, dst_core_id);
-                     */
-
-            /*if (fl->get_tg_info().src_task == 34 && dst_core_id == 14){
-                printf("Out Memory Size < %2d > \tRemained Size < %2d >\n", \
-                out_edge.get_out_memory_size(), out_edge.get_out_memory_remained());
-            }*/
-            //check the buffer in the dest core
-            if (! out_edge.record_sent_pkt(fl))
-                continue;
-
-            DPRINTF(TaskGraph, "Node [ %3d ] Core [ %3d ] Task %5d send \
-                    flit to Node [ %3d ] Core [ %3d ]\n", m_id, current_core_id, \
-                    fl->get_tg_info().src_task, dst_node_id, dst_core_id);
+            //record the token, after all pkt sent, out memory read pointer
+            //move
 
             int num_flits = fl->get_size();
 
             for (int j=0;j<num_flits;j++){
-                flit* generated_fl = new flit(j, vc, 2, fl->get_route(), \
-                num_flits, fl->get_msg_ptr(),curCycle(), fl->get_tg_info());
-
+                flit* generated_fl = new flit(j, -1, 2, fl->get_route(), \
+                num_flits, fl->get_msg_ptr(), curCycle(), fl->get_tg_info());
+                //the fl enqueue time record the time flit should be sent
                 generated_fl->set_src_delay(curCycle() - \
                     fl->get_enqueue_time());
 
-                /*DPRINTF(TaskGraph, "NI %d Flit should send time in %lu\n",\
-                 m_id, uint64_t(fl->get_enqueue_time()));
-                generated_fl->set_src_delay(curCycle() - \
-                fl->get_enqueue_time());*/
-
-                m_ni_out_vcs[vc]->insert(generated_fl);
+                crossbar_data[dst_core_idx].push_back(generated_fl);
             }
 
             delete fl;
@@ -1399,11 +1373,71 @@ NetworkInterface::coreSendFlitsOut(){
             core_buffer[j].shrink_to_fit();
             core_buffer_sent[j] += 1;
 
-            m_ni_out_vcs_enqueue_time[vc] = curCycle();
-            m_out_vc_state[vc]->setState(ACTIVE_, curCycle());
+            crossbar_busy_out[dst_core_idx] = true;
+            crossbar_delay_timer[dst_core_idx] = 0;
+
+            DPRINTF(TaskGraph, "Node [ %3d ] Core [ %3d ] Task %5d send \
+                flit to Core [ %3d ] by Crossbar port [ %3d ]\n", \
+                m_id, current_core_id, fl->get_tg_info().src_task, \
+                dst_core_id, dst_core_idx); 
         }
     }
-    core_buffer_round_robin = (core_buffer_round_robin + 1) % m_num_cores;
+}
+
+void
+NetworkInterface::interClusterOut()
+{
+    for (int i=0;i<m_num_cores;i++){
+        int j = (i + core_buffer_round_robin) % m_num_cores;
+        int current_core_id = lookUpMap(m_index_core_id, j);
+        assert(lookUpMap(m_core_id_index, current_core_id) == j);
+
+        if (cluster_buffer[j].size() == 0)
+            continue;
+
+        flit* fl = cluster_buffer[j].front();
+ 
+        GraphTask& src_task = get_task_by_task_id(current_core_id, fl->get_tg_info().app_idx,\
+            fl->get_tg_info().src_task);
+        GraphEdge& out_edge = src_task.\
+            get_outgoing_edge_by_eid(fl->get_tg_info().edge_id);
+        int dst_core_id = out_edge.get_dst_proc_id();
+        int dst_node_id = fl->get_route().dest_ni;
+
+        int vc=calculateVC(fl->get_vnet());
+ 
+        if (vc == -1)
+            break;
+
+        //check the buffer in the dest core
+        if (! out_edge.record_sent_pkt(fl))
+            continue;
+
+        DPRINTF(TaskGraph, "Node [ %3d ] Core [ %3d ] Task %5d send \
+                flit to Node [ %3d ] Core [ %3d ]\n", m_id, current_core_id, \
+                fl->get_tg_info().src_task, dst_node_id, dst_core_id);
+
+        int num_flits = fl->get_size();
+
+        for (int j=0;j<num_flits;j++){
+            flit* generated_fl = new flit(j, vc, 2, fl->get_route(), \
+            num_flits, fl->get_msg_ptr(),curCycle(), fl->get_tg_info());
+
+            generated_fl->set_src_delay(curCycle() - \
+                fl->get_enqueue_time());
+
+            m_ni_out_vcs[vc]->insert(generated_fl);
+        }
+
+        delete fl;
+
+        cluster_buffer[j].erase(cluster_buffer[j].begin());
+        cluster_buffer[j].shrink_to_fit();
+        core_buffer_sent[j] += 1;
+
+        m_ni_out_vcs_enqueue_time[vc] = curCycle();
+        m_out_vc_state[vc]->setState(ACTIVE_, curCycle());
+    }
 }
 
 bool
@@ -1432,6 +1466,7 @@ std::string* core_name, int* num_threads, int num_apps){
     remained_execution_time.resize(m_num_cores);
     generator_buffer.resize(m_num_cores);
     core_buffer.resize(m_num_cores);
+    cluster_buffer.resize(m_num_cores);
     crossbar_busy_out.resize(m_num_cores);
     crossbar_delay_timer.resize(m_num_cores);
     crossbar_data.resize(m_num_cores);
