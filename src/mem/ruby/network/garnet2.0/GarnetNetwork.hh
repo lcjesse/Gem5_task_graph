@@ -183,12 +183,6 @@ class GarnetNetwork : public Network, public Consumer
         src_dst_latency[src][dst] += latency;
     }
 
-    // //return ddr position       ///////////////////////
-    // std::vector<int> get_ddr_posi()
-    // {
-    //     return ddr_position;
-    // }
-
     //for debug
     OutputStream *task_start_time_vs_id;
     OutputStream *task_start_end_time_vs_id;
@@ -214,8 +208,8 @@ class GarnetNetwork : public Network, public Consumer
     std::string m_topology;
     std::string m_architecture_file;
     bool m_print_task_execution_info;
-    uint32_t m_vcs_for_ddr;
-    bool m_vc_configuration_enable;
+    uint32_t m_vcs_for_allocation;
+    std::string m_vc_allocation_object;
 
     //for task graph
     int m_num_proc;
@@ -236,7 +230,7 @@ class GarnetNetwork : public Network, public Consumer
     int m_num_core;
     int** src_dst_latency;
 
-    std::vector<int> ddr_position;  //for vc to check ddr posi
+    std::vector<int> vc_allocation_object_position;  //for vc to check vc_allocation_object position
 
     // Statistical variables
     Stats::Vector m_packets_received;

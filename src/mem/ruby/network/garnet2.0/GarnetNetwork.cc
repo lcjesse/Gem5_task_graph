@@ -62,7 +62,7 @@ GarnetNetwork::GarnetNetwork(const Params *p)
     m_num_rows = p->num_rows;
     m_ni_flit_size = p->ni_flit_size;
     m_vcs_per_vnet = p->vcs_per_vnet;
-    m_vcs_for_ddr = p->vcs_for_ddr;
+    m_vcs_for_allocation = p->vcs_for_allocation;
     m_buffers_per_data_vc = p->buffers_per_data_vc;
     m_buffers_per_ctrl_vc = p->buffers_per_ctrl_vc;
     m_routing_algorithm = p->routing_algorithm;
@@ -73,7 +73,7 @@ GarnetNetwork::GarnetNetwork(const Params *p)
     m_topology = p->topology;
     m_architecture_file = p->architecture_file;
     m_print_task_execution_info = p->print_task_execution_info;
-    m_vc_configuration_enable = p->vc_configuration_enable;
+    m_vc_allocation_object = p->vc_allocation_object;
 
     m_enable_fault_model = p->enable_fault_model;
     if (m_enable_fault_model)
@@ -109,8 +109,8 @@ GarnetNetwork::GarnetNetwork(const Params *p)
     //if topology is ring, vc must be a multiple of two
     if (m_topology == "Ring")
     {
-        assert((m_vcs_per_vnet % 2 == 0) && (m_vcs_for_ddr % 2 == 0) &&\
-        (m_vcs_for_ddr < m_vcs_per_vnet));
+        assert((m_vcs_per_vnet % 2 == 0) && (m_vcs_for_allocation % 2 == 0) &&\
+        (m_vcs_for_allocation < m_vcs_per_vnet));
     }
 }
 
@@ -715,22 +715,25 @@ GarnetNetwork::loadTraffic(std::string filename){
                 src_task.add_outgoing_edge(e);
                 dst_task.add_incoming_edge(e);
 
-                // Set vc_choice based on vc configuration mode and node ID and DDR position
+                // Set vc_choice based on m_vc_allocation_object and node ID and vc_allocation_object_position
                 int vc_choice;
-                if(m_vc_configuration_enable){
-                    bool is_for_ddr = false;
-                    int num_ddr = ddr_position.size();
-                    for (int i = 0; i < num_ddr; i++){
-                        if((src_node_id == ddr_position[i])||(dst_node_id \
-                        == ddr_position[i])){
+                if(m_vc_allocation_object != " " && m_vcs_for_allocation > 0){
+                    bool is_for_object = false;
+                    int num_object = vc_allocation_object_position.size();
+                    for (int i = 0; i < num_object; i++){
+                        if((src_node_id == vc_allocation_object_position[i])||(dst_node_id \
+                        == vc_allocation_object_position[i])){
                             vc_choice = (dst_node_id >= src_node_id);
-                            is_for_ddr = true;
+                            is_for_object = true;
                             break;
                         }
                     }
-                    if(is_for_ddr == false){
+                    if(is_for_object == false){
                         vc_choice = (dst_node_id >= src_node_id) + 2;
                     }
+                }
+                else if(m_vc_allocation_object == " " && m_vcs_for_allocation > 0){
+                    fatal("vc_allocation_object is not assigned! vcs_for_allocation can not be positive!");
                 }
                 else{
                     vc_choice = (dst_node_id >= src_node_id);
@@ -933,11 +936,14 @@ GarnetNetwork::constructArchitecture(std::string filename){
             core_name[j] = _core_name;
             fscanf(fp, "%d", &core_thread[j]);
 
-            std::string substring = "DDR";
-            std::string::size_type idx;
-            idx=core_name[j].find(substring);
-            if (idx != string::npos ) 
-                ddr_position.push_back(node_id);
+            // If user enter the object name then find their id
+            if(m_vc_allocation_object != " "){
+                std::string::size_type idx;
+                idx=core_name[j].find(m_vc_allocation_object);
+                if (idx != string::npos){ 
+                    vc_allocation_object_position.push_back(node_id);
+                }
+            }
 
             m_core_id_node_id.insert(make_pair(core_id[j], node_id));
 

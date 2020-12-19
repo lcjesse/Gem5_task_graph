@@ -58,8 +58,10 @@ class GarnetNetwork(RubyNetwork):
         task graph mode""");
     print_task_execution_info = Param.Bool(False, """enable print task
         execution information in the output directory.""")
-    vcs_for_ddr = Param.UInt32(0, "virtual channels for ddr per virtual network");
-    vc_configuration_enable = Param.Bool(False, "enable more vc and enable vc for ddr");
+    vcs_for_allocation = Param.UInt32(0, """virtual channels for specific nodes
+        (assigned by vc-allocation-object) per virtual network""");
+    vc_allocation_object = Param.String(" ", """Ring network can allocate 
+        certain numbers of vcs(vcs-for-allocation) for these objects.""");
 
 
 class GarnetNetworkInterface(ClockedObject):
@@ -85,8 +87,9 @@ class GarnetRouter(BasicRouter):
                               "virtual channels per virtual network")
     virt_nets = Param.UInt32(Parent.number_of_virtual_networks,
                           "number of virtual networks")
-    vcs_for_ddr = Param.UInt32(Parent.vcs_for_ddr,
-                             "virtual channels for ddr per virtual network")
-    vc_configuration_enable = Param.Bool(Parent.vc_configuration_enable,
-                             "enable more vc and enable vc for ddr")
+    vcs_for_allocation = Param.UInt32(Parent.vcs_for_allocation,
+                             "virtual channels for specific nodes per virtual network")
+    vc_allocation_object = Param.String(Parent.vc_allocation_object,
+                             """Ring network can allocate certain numbers of 
+                             vcs(vcs-for-allocation) for these objects.""")
 

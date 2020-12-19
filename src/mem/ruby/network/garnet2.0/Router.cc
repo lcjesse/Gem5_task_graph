@@ -53,8 +53,8 @@ Router::Router(const Params *p)
     m_latency = p->latency;
     m_virtual_networks = p->virt_nets;
     m_vc_per_vnet = p->vcs_per_vnet;
-    m_vc_for_ddr = p ->vcs_for_ddr;
-    m_vc_configuration_enable = p->vc_configuration_enable;
+    m_vcs_for_allocation = p ->vcs_for_allocation;
+    m_vc_allocation_object = p->vc_allocation_object;
     m_num_vcs = m_virtual_networks * m_vc_per_vnet;
 
     m_routing_unit = new RoutingUnit(this);

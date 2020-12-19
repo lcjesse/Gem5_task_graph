@@ -50,8 +50,8 @@ OutputUnit::OutputUnit(int id, PortDirection direction, Router *router)
     m_num_vcs = m_router->get_num_vcs();
     m_vc_per_vnet = m_router->get_vc_per_vnet();
     m_out_buffer = new flitBuffer();
-    m_vc_for_ddr = m_router->get_vc_for_ddr();
-    m_vc_configuration_enable = m_router->get_vc_configuration_enable();
+    m_vcs_for_allocation = m_router->get_vcs_for_allocation();
+    m_vc_allocation_object = m_router->get_vc_allocation_object();
 
     for (int i = 0; i < m_num_vcs; i++) {
         m_outvc_state.push_back(new OutVcState(i, m_router->get_net_ptr()));
@@ -128,29 +128,31 @@ OutputUnit::select_free_vc(int vnet)
 bool
 OutputUnit::has_free_vc(int vnet, int vc_choice)
 {
-    if(m_vc_configuration_enable){
-        int vc_base = vnet*m_vc_per_vnet;
-        int vc_start, vc_end;
-        if ((m_vc_for_ddr == 0)||(vc_choice < 2))
-        {
-            vc_choice += 2; //if no vc for ddr, all use same set of vc
-        }
-
+    int vc_base = vnet*m_vc_per_vnet;
+    int vc_start, vc_end;
+    
+    if(m_vc_allocation_object != " " && m_vcs_for_allocation > 0){
+    // allocate some vcs for specific object, 4 cases: 
+    // special low; special high; normal low; normal high
         switch(vc_choice){
             case 0:
+            // special low
                 vc_start = 0;
-                vc_end = m_vc_for_ddr / 2;
+                vc_end = m_vcs_for_allocation / 2;
                 break;
             case 1:
-                vc_start = m_vc_for_ddr / 2;
-                vc_end = m_vc_for_ddr;
+            // special high
+                vc_start = m_vcs_for_allocation / 2;
+                vc_end = m_vcs_for_allocation;
                 break;
             case 2:
-                vc_start = m_vc_for_ddr;
-                vc_end = (m_vc_for_ddr + m_vc_per_vnet) / 2;
+            // normal low
+                vc_start = m_vcs_for_allocation;
+                vc_end = (m_vcs_for_allocation + m_vc_per_vnet) / 2;
                 break;
             case 3:
-                vc_start = (m_vc_for_ddr + m_vc_per_vnet) / 2;
+            // normal high
+                vc_start = (m_vcs_for_allocation + m_vc_per_vnet) / 2;
                 vc_end = m_vc_per_vnet;
                 break;
             default:
@@ -166,12 +168,24 @@ OutputUnit::has_free_vc(int vnet, int vc_choice)
         return false;
     }
     else{
+    // No special allocation. To realize deadlock-free, 2 cases:
+    // low channel; high channel.
         int vc_base = vnet*m_vc_per_vnet;
-        int vc = vc_base + vc_choice;
-        if (is_vc_idle(vc, m_router->curCycle()))//only check vc_choice
-            return true;
-        //find the vc number of its own net, for example for vnet1,
-        //vc num begin with 1*2=2 to 1*2+2==4
+        if(vc_choice == 0){
+        // low channel
+            vc_start = 0;
+            vc_end = m_vc_per_vnet / 2;
+        }
+        else{
+        // high channel
+            assert(vc_choice == 1);
+            vc_start = m_vc_per_vnet / 2;
+            vc_end = m_vc_per_vnet;
+        }
+        for (int vc = (vc_base + vc_start); vc < (vc_base + vc_end); vc++) {
+            if (is_vc_idle(vc, m_router->curCycle()))
+                return true;
+        }
         return false;
     }
 }
@@ -180,32 +194,35 @@ OutputUnit::has_free_vc(int vnet, int vc_choice)
 int
 OutputUnit::select_free_vc(int vnet, int vc_choice)
 {
-    if(m_vc_configuration_enable){  //enable Ring network to choose more vc and enable vc for ddr
-        int vc_base = vnet*m_vc_per_vnet;
-        int vc_start, vc_end;
-        if ((m_vc_for_ddr == 0)||(vc_choice < 2))
-        {
-            vc_choice += 2; //if no vc for ddr, all use same set of vc
-        }
+    int vc_base = vnet*m_vc_per_vnet;
+    int vc_start, vc_end;
+    
+    if(m_vc_allocation_object != " " && m_vcs_for_allocation > 0){
+    // allocate some vcs for specific object, 4 cases: 
+    // special low; special high; normal low; normal high
         switch(vc_choice){
             case 0:
+            // special low
                 vc_start = 0;
-                vc_end = m_vc_for_ddr / 2;
+                vc_end = m_vcs_for_allocation / 2;
                 break;
             case 1:
-                vc_start = m_vc_for_ddr / 2;
-                vc_end = m_vc_for_ddr;
+            // special high
+                vc_start = m_vcs_for_allocation / 2;
+                vc_end = m_vcs_for_allocation;
                 break;
             case 2:
-                vc_start = m_vc_for_ddr;
-                vc_end = (m_vc_for_ddr + m_vc_per_vnet) / 2;
+            // normal low
+                vc_start = m_vcs_for_allocation;
+                vc_end = (m_vcs_for_allocation + m_vc_per_vnet) / 2;
                 break;
             case 3:
-                vc_start = (m_vc_for_ddr + m_vc_per_vnet) / 2;
+            // normal high
+                vc_start = (m_vcs_for_allocation + m_vc_per_vnet) / 2;
                 vc_end = m_vc_per_vnet;
                 break;
             default:
-                fatal("Vc choice error in select_free_vc()! Should in range [0, 3]!");
+                fatal("Vc choice error in has_free_vc()! Should in range [0, 3]!");
                 break;
         }
         for (int vc = (vc_base + vc_start); vc < (vc_base + vc_end); vc++) {
@@ -217,19 +234,30 @@ OutputUnit::select_free_vc(int vnet, int vc_choice)
 
         return -1;
     }
-    else{       //m_vc_configuration_enable off
+    else{
+    // Normal situation.
+    // No special allocation. To realize deadlock-free, 2 cases:
+    // low channel; high channel.
         int vc_base = vnet*m_vc_per_vnet;
-        int vc = vc_base + vc_choice;
-        if (is_vc_idle(vc, m_router->curCycle()))//only check vc_choice
-        {
-            m_outvc_state[vc]->setState(ACTIVE_, m_router->curCycle());
-            return vc;
+        if(vc_choice == 0){
+        // low channel
+            vc_start = 0;
+            vc_end = m_vc_per_vnet / 2;
         }
-        //find free vc and set outvc active VIP!!!
-        //HERE we set vc vc_choice and always check if it is idle
+        else{
+        // high channel
+            assert(vc_choice == 1);
+            vc_start = m_vc_per_vnet / 2;
+            vc_end = m_vc_per_vnet;
+        }
+        for (int vc = (vc_base + vc_start); vc < (vc_base + vc_end); vc++) {
+            if (is_vc_idle(vc, m_router->curCycle())){
+                m_outvc_state[vc]->setState(ACTIVE_, m_router->curCycle());
+                return vc;
+            }
+        }
         return -1;
-    }
-    
+    }   
 }
 
 // bool

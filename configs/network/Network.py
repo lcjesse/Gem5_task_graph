@@ -77,9 +77,10 @@ def define_options(parser):
     parser.add_option("--vcs-per-vnet", action="store", type="int", default=2,
                       help="""number of virtual channels per virtual network
                             inside garnet network.""")
-    parser.add_option("--vcs-for-ddr", action="store", type="int", default=0,
-                      help="""number of virtual channels for ddr per virtual 
-                            network inside garnet network.""")
+    parser.add_option("--vcs-for-allocation", action="store", type="int", default=0,
+                      help="""number of virtual channels for specific nodes(assigned 
+                            by vc-allocation-object) per virtual network inside 
+                            garnet network.""")
     parser.add_option("--routing-algorithm", action="store", type="int",
                       default=0,
                       help="""routing algorithm in network.
@@ -93,10 +94,9 @@ def define_options(parser):
     parser.add_option("--garnet-deadlock-threshold", action="store",
                       type="int", default=50000,
                       help="network-level deadlock threshold.")
-    parser.add_option("--vc-configuration-enable", action="store_true",
-                      default=False,
-                      help="""enable Ring network to choose more vc and 
-                            enable vc for ddr.""")
+    parser.add_option("--vc-allocation-object", type="string", default=" ",
+                      help="""Ring network can allocate certain numbers of 
+                            vcs(vcs-for-allocation) for these objects.""")
 
 
 def create_network(options, ruby):
@@ -128,7 +128,7 @@ def init_network(options, network, InterfaceClass):
     if options.network == "garnet2.0":
         network.num_rows = options.mesh_rows
         network.vcs_per_vnet = options.vcs_per_vnet
-        network.vcs_for_ddr = options.vcs_for_ddr
+        network.vcs_for_allocation = options.vcs_for_allocation
         network.ni_flit_size = options.link_width_bits / 8
         network.routing_algorithm = options.routing_algorithm
         network.garnet_deadlock_threshold = options.garnet_deadlock_threshold
@@ -139,7 +139,7 @@ def init_network(options, network, InterfaceClass):
         network.topology = options.topology
         network.architecture_file = options.architecture_file
         network.print_task_execution_info = options.print_task_execution_info
-        network.vc_configuration_enable = options.vc_configuration_enable
+        network.vc_allocation_object = options.vc_allocation_object
 
     if options.network == "simple":
         network.setup_buffers()
