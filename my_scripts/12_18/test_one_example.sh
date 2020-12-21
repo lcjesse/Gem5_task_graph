@@ -8,7 +8,7 @@
 ################################################################################
 
 GEM5=/home/wj/Study/gem5
-DATE=`date +%m_%d`
+DATE=`date +%m_%d_%H_%M`
 # OUT_FILE_DIR=${GEM5}/my_STATS/11_25/multi_app
 OUT_FILE_DIR=${GEM5}/my_STATS/${DATE}/multi_app
 mkdir -p ${OUT_FILE_DIR}/FIGS
@@ -51,7 +51,7 @@ if [ "$1" = "run" ];then
             --routing-algorithm=2 \
             --vcs-per-vnet=2 \
             --link-width-bits=256 \
-            --architecture-file="${GEM5}/my_benchmarks/12_18/Heterogeneous_SoC_with_Ring_Topology.arch"
+            --architecture-file="${GEM5}/my_benchmarks/12_18/Heterogeneous_SoC_with_Ring_Topology.arch" --print-task-execution-info
             #--print-task-execution-info #&> ${OUT_FILE_DIR}/${DIR_NAME}/log  
             #--ruby-clock=2GHz
             #--mesh-rows=1

@@ -786,15 +786,6 @@ NetworkInterface::enqueueTaskInThreadQueue()
                 }
             }*/
 
-/*
-            if(current_core_id==12){
-            for(unsigned int ii=0;ii<temp_task_id_list.size();ii++){
-                printf("%3d->%3d\n", ii, temp_task_id_list[ii]);
-            }
-            printf("\n");
-            }
-*/
-
             //for(unsigned int j=0;j<temp_task_id_list.size();j++){
             for (unsigned int ii=0;ii<task_list[i][app_idx].size();ii++){
                 int j = (ii + task_to_exec_round_robin[i][app_idx]) % task_list[i][app_idx].size();
@@ -880,7 +871,7 @@ NetworkInterface::enqueueTaskInThreadQueue()
 
                     int task_offset = get_task_offset_by_task_id(current_core_id, app_idx,c_task.get_id());
                     if (task_offset==task_to_exec_round_robin[i][app_idx]+round_robin_offset)
-                       round_robin_offset += 1;
+                        round_robin_offset += 1;
 
                     c_task.add_c_e_times();
                     task_in_thread_queue[i][not_busy_idx] = c_task.get_id();
@@ -895,8 +886,16 @@ NetworkInterface::enqueueTaskInThreadQueue()
                     c_task.record_execution_time(curCycle(), \
                         curCycle()+execution_time);
 
-                    if (current_core_id==test_core)
-                            printf("Task %3d start\n", c_task.get_id());
+                    if(c_task.get_c_e_times()<=c_task.get_required_times())
+                        m_net_ptr->update_start_end_time(app_idx, c_task.get_c_e_times()-1, curCycle(), curCycle()+execution_time);
+
+                    // if (current_core_id==12){
+                    //     for (unsigned int iii=0;iii<task_list[i][app_idx].size();iii++){
+                    //         GraphTask &t = task_list[i][app_idx][iii];
+                    //         printf("Task %3d completed execute %3d times\n", t.get_id(), t.get_completed_times());
+                    //     }
+                    //     printf("\n\n");
+                    // }
 
                     //if the task have no in edges, we assume it can execute at the
                     //Cycle 0.
@@ -1005,6 +1004,17 @@ NetworkInterface::enqueueTaskInThreadQueue()
                         execution_time;
                     c_task.record_execution_time(curCycle(), \
                         curCycle()+execution_time);
+                    
+                    if(c_task.get_c_e_times()<=c_task.get_required_times())
+                        m_net_ptr->update_start_end_time(app_idx, c_task.get_c_e_times()-1, curCycle(), curCycle()+execution_time);
+
+                    // if (current_core_id==12){
+                    //     for (unsigned int iii=0;iii<task_list[i][app_idx].size();iii++){
+                    //         GraphTask &t = task_list[i][app_idx][iii];
+                    //         printf("Task %3d completed execute %3d times\n", t.get_id(), t.get_completed_times());
+                    //     }
+                    //     printf("\n\n");
+                    // }
 
                     //For the task has in edges, compare the receive token time of
                     //the iteration and choose the max cycle.
@@ -1018,8 +1028,6 @@ NetworkInterface::enqueueTaskInThreadQueue()
                             get_all_tokens_time = edge_get_token_time;
                     }
                     c_task.set_all_tokens_received_time(get_all_tokens_time);
-                    assert(curCycle()-get_all_tokens_time==\
-                        c_task.get_task_waiting_time(c_task.get_c_e_times()-1));
                     /*
                     printf("Core %3d Task %3d Waiting time %3d\n",\
                         current_core_id, c_task.get_id(),\
@@ -1073,6 +1081,9 @@ NetworkInterface::task_execution()
                     GraphTask &c_task = \
                         get_task_by_task_id(current_core_id, app_idx, c_task_id);
                     c_task.add_completed_times();
+                    //for output dete delay
+                    if(c_task.get_completed_times()<=c_task.get_required_times())
+                        m_net_ptr->add_num_completed_tasks(app_idx, c_task.get_completed_times());
 
                     remained_execution_time_in_thread[i][j] = -1;
                     thread_busy_flag[i][j] = false;

@@ -69,7 +69,6 @@ GarnetNetwork::GarnetNetwork(const Params *p)
     m_task_graph_enable = p->task_graph_enable;
     m_task_graph_file = p->task_graph_file;
     m_token_packet_length = p->token_packet_length;
-    m_execution_iterations = p->execution_iterations;
     m_topology = p->topology;
     m_architecture_file = p->architecture_file;
     m_print_task_execution_info = p->print_task_execution_info;
@@ -169,6 +168,10 @@ GarnetNetwork::init()
         //for app ete delay
         app_delay_info = simout.\
             create("application_delay_info.log", false, true);
+        //for app ete delay out-of-order when run simulation.
+        //app_delay_running_info = simout.create("application_delay_running_info.log", false, true);
+        app_delay_running_info = simout.open("application_delay_running_info.log",ios_base::out|ios_base::app, false, true);
+        *(app_delay_running_info->stream())<<"Application\tIteration\tStart_time\tEnd_time\tExecution_Delay"<<endl;
 
         task_waiting_time_info = simout.create("task_waiting_time_info.log", false, true);
 
@@ -183,6 +186,20 @@ GarnetNetwork::init()
         if (constructArchitecture(m_architecture_file))
             cout<<"info: Construct Node -"<<m_architecture_file<<\
             " - successfully !"<<endl;
+
+        //num_completed_tasks[num_apps][num_iters] records the num tasks in this iters
+        current_execution_iterations = new int[m_num_application];
+        num_completed_tasks = new int* [m_num_application];        
+        for(int i=0;i<m_num_application;i++){
+            num_completed_tasks[i] = new int[m_applicaton_execution_iterations[i]];
+        }
+
+        for(int i=0;i<m_num_application;i++){
+            current_execution_iterations[i] = 0;
+            for(int j=0;j<m_applicaton_execution_iterations[i];j++){
+                num_completed_tasks[i][j] = 0;
+            }
+        }        
 
         //Print Node Configuration Information
         if (true){
@@ -205,6 +222,17 @@ GarnetNetwork::init()
         ETE_delay.resize(m_num_application);
         task_start_time.resize(m_num_application);
         task_end_time.resize(m_num_application);
+        for(int i=0;i<m_num_application;i++){
+            task_start_time[i].resize(m_applicaton_execution_iterations[i]);
+            task_end_time[i].resize(m_applicaton_execution_iterations[i]);
+            ETE_delay[i].resize(m_applicaton_execution_iterations[i]);
+        }
+
+        for(int i=0;i<m_num_application;i++)
+            for(int j=0;j<m_applicaton_execution_iterations[i];j++){
+                task_start_time[i][j] = INT_MAX;
+                task_end_time[i][j] = INT_MIN;
+            }
 
         //initialize the latency matrix
         src_dst_latency = new int* [m_num_core];
@@ -231,10 +259,15 @@ GarnetNetwork::~GarnetNetwork()
     delete [] m_applicaton_execution_iterations;
     delete [] m_num_task;
     delete [] m_num_edge;
+    delete [] current_execution_iterations;
 
     for (int i=0;i<m_num_core;i++)
         delete [] src_dst_latency[i];
     delete [] src_dst_latency;
+
+    for (int i=0;i<m_num_application;i++)
+        delete [] num_completed_tasks[i];
+    delete [] num_completed_tasks;
 }
 
 /*
@@ -487,12 +520,6 @@ GarnetNetwork::regStats()
         ;
 
     //add for TG
-    m_avg_ete_delay
-        .name(name() + ".average_application_ete_dalay");
-
-    m_ex_iters
-        .name(name() + ".application_execution_iteration_times");
-
     m_total_task_execution_time
         .name(name() + ".total_task_execution_time");
 
@@ -685,7 +712,7 @@ GarnetNetwork::loadTraffic(std::string filename){
                 e.set_dst_proc_id(v[4]);
                 //Note Here! We just consider the size of the out memory for the source task
                 //e.set_out_memory(v[5],v[6]);
-                e.set_out_memory(v[5],10);
+                e.set_out_memory(v[5],1);
 
                 // if (v[6]==-1)
                 //     e.set_out_memory(v[5],INT_MAX);
@@ -805,7 +832,7 @@ GarnetNetwork::wakeup(){
         //each cycle would check finish
             scheduleEvent(Cycles(1));
         else {
-
+            //collect simulation data
             PrintAppDelay();
             PrintTaskWaitingInfo();
 
@@ -813,9 +840,8 @@ GarnetNetwork::wakeup(){
             simout.close(task_start_end_time_vs_id);
             simout.close(task_start_time_vs_id_iters);
             simout.close(app_delay_info);
+            simout.close(app_delay_running_info);
             simout.close(task_waiting_time_info);
-
-            m_ex_iters = m_execution_iterations;
 
             exitSimLoop("Network Task Graph Simulation Complete.");
         }
@@ -870,34 +896,11 @@ GarnetNetwork::checkApplicationFinish(){
         printf("\n");
     }
 */
-
-    for (int i=0;i<m_nodes/2;i++){
-
-        int num_cores_in_node = m_nis[i]->get_num_cores();
-
-        for (int j=0;j<num_cores_in_node;j++){
-            int core_id = m_nis[i]->get_core_id_by_index(j);
-            for (int app_idx=0;app_idx<m_num_application;app_idx++){
-                int task_list_len = m_nis[i]->get_task_list_length(j, app_idx);
-                for (int k=0;k<task_list_len;k++){
-                    GraphTask& temp_task = m_nis[i]->\
-                        get_task_by_offset(core_id, app_idx, k);
-                    if (temp_task.get_completed_times()>=\
-                        temp_task.get_required_times()){
-                        continue;
-                        }
-                    else{
-                        /*
-                        if (curCycle()>=88000){
-                            DPRINTF(TaskGraph, "Node [ %5d ] Core [ %5d ] \
-                                Task [ %5d ] not completed ! \n", \
-                                i, m_nis[i]->get_core_id_by_index(j), \
-                                    temp_task.get_id());
-                        }*/
-                        return false;
-                    }
-                }
-            }
+    for(int i=0;i<m_num_application;i++){
+        if(current_execution_iterations[i]==m_applicaton_execution_iterations[i]){
+            continue;
+        } else {
+            return false;
         }
     }
     return true;
@@ -988,10 +991,10 @@ GarnetNetwork::getNodeIdbyCoreId(int core_id){
 // print each ete delay for log
 void
 GarnetNetwork::PrintAppDelay(){
-
     for (int app_idx=0;app_idx<m_num_application;app_idx++){
         int Average_ETE_delay=0;
         for (int i=0;i<m_applicaton_execution_iterations[app_idx];i++){
+/*           
             if (m_print_task_execution_info)
               *(task_start_time_vs_id_iters->stream())<<"Execution\n";
             int max_time=-1;
@@ -1026,9 +1029,6 @@ GarnetNetwork::PrintAppDelay(){
                     }
                 }
             }
-            task_start_time[app_idx].push_back(min_time);
-            task_end_time[app_idx].push_back(max_time);
-
             if (m_print_task_execution_info){
                 *(task_start_end_time_vs_id->stream())<<"min\t"<<\
                     min_time<<"\t"<<min_time_core_id<<"\t"\
@@ -1037,13 +1037,10 @@ GarnetNetwork::PrintAppDelay(){
                     max_time<<"\t"<<max_time_core_id<<"\t"\
                     <<max_time_task_id<<"\n";
             }
-
-            ETE_delay[app_idx].push_back(max_time-min_time);
-            Average_ETE_delay=Average_ETE_delay+max_time-min_time;
+*/
+            Average_ETE_delay=Average_ETE_delay+ETE_delay[app_idx][i];
         }
         Average_ETE_delay = Average_ETE_delay / m_applicaton_execution_iterations[app_idx];
-
-        m_avg_ete_delay = Average_ETE_delay;
 
         cout<<"info: Application - "<<m_application_name[app_idx]<<" - has executed successfully !\n";
         printf("Execution iterations: %3d\n", m_applicaton_execution_iterations[app_idx]);
@@ -1184,4 +1181,14 @@ GarnetNetwork::PrintTaskWaitingInfo(){
     delete [] core_waiting_name;
     delete [] total_core_waiting_time;
     delete [] total_node_waiting_time;
+}
+
+
+void
+GarnetNetwork::output_ete_delay(int app_idx, int ex_iters)
+{
+    ETE_delay[app_idx][ex_iters] = task_end_time[app_idx][ex_iters] - task_start_time[app_idx][ex_iters];
+
+    *(app_delay_running_info->stream())<<m_application_name[app_idx]<<"\t"<<ex_iters<<"\t"<<task_start_time[app_idx][ex_iters]<<\
+        "\t"<<task_end_time[app_idx][ex_iters]<<"\t"<<ETE_delay[app_idx][ex_iters]<<endl;
 }

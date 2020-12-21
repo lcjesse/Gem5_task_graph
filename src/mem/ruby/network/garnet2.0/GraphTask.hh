@@ -45,6 +45,11 @@ public:
         set_required_times(int k)
         {
                 required_times = k;
+                //because we use continuous stimulus, the vector would be long
+                //we limit it before simulation.
+                start_time.reserve(required_times);
+                end_time.reserve(required_times);
+                get_all_tokens_time.reserve(required_times);
                 return 0;
         }
 
@@ -71,18 +76,47 @@ public:
                 task_state = i;
                 return;
         }
+        
         int get_task_state() { return task_state; }
+        
         void record_execution_time(int start, int end){
-                start_time.push_back(start);end_time.push_back(end);
+                if(start_time.size()<required_times){
+                        start_time.push_back(start);
+                        end_time.push_back(end);
+                }
         }
-        int get_start_time(int i){return start_time.at(i);}
-        int get_end_time(int i){return end_time.at(i);}
+
+        int get_start_time(int i)
+        {
+                if(i>required_times)
+                        fatal("Get task start time over the required times ! ");
+                else
+                        return start_time.at(i);
+        }
+        
+        int get_end_time(int i)
+        {
+                if(i>required_times)
+                        fatal("Get task end time over the required times ! ");
+                else                
+                        return end_time.at(i);
+        }
+        
         void set_all_tokens_received_time(int time){
-                get_all_tokens_time.push_back(time);
+                if(get_all_tokens_time.size()<required_times){
+                        get_all_tokens_time.push_back(time);
+                }
         }
+        
         int get_task_waiting_time(int i){
-                return start_time[i]-get_all_tokens_time[i];}
-        int get_token_received_size(){ return get_all_tokens_time.size(); }
+                if(i>required_times)
+                        fatal("Get task waiting time over the required times ! ");
+                else
+                        return start_time[i]-get_all_tokens_time[i];}
+
+        int get_token_received_size(){ 
+                return get_all_tokens_time.size(); }
+        
         void set_app_idx(int i){ app_idx=i; return; }
         int get_app_idx() { return app_idx; }
 
@@ -113,6 +147,7 @@ private:
         int task_state;
         //For a task, first get all tokens, then if core idle, the task begin
         //execute, so between them could be the task waiting time.
+        //the length of these vector would be limited in the task required times when push back
         std::vector<int> get_all_tokens_time;
         std::vector<int> start_time;
         std::vector<int> end_time;

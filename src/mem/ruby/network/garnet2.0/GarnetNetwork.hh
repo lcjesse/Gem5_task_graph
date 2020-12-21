@@ -183,12 +183,41 @@ class GarnetNetwork : public Network, public Consumer
         src_dst_latency[src][dst] += latency;
     }
 
+    //add the task to num_completed_tasks
+    //To output the ete delay when run simulation
+    //shoulb ensure not over m_applicaton_execution_iterations[app_idx]
+    void
+    add_num_completed_tasks(int app_idx, int ex_iters){
+        //Note here! ex_iters should minus 1
+        num_completed_tasks[app_idx][ex_iters-1]++;
+        if(num_completed_tasks[app_idx][ex_iters-1] == m_num_task[app_idx]){
+            //if num_tasks satisfied, then we can ensure the iteration had done.
+            current_execution_iterations[app_idx]++;
+            assert(ex_iters==current_execution_iterations[app_idx]);
+            output_ete_delay(app_idx, ex_iters-1);
+        }
+    }
+
+    //update start, end time
+    void
+    update_start_end_time(int app_idx, int ex_iters, int start, int end){
+        //compare the task start time and end time
+        task_start_time[app_idx][ex_iters] = (start<task_start_time[app_idx][ex_iters])?\
+            start:task_start_time[app_idx][ex_iters];
+        task_end_time[app_idx][ex_iters] = (end>task_end_time[app_idx][ex_iters])?\
+            end:task_end_time[app_idx][ex_iters];
+    }
+
+    //print ete-delay for certain iteration of one application
+    void output_ete_delay(int app_idx, int ex_iters);
+
     //for debug
     OutputStream *task_start_time_vs_id;
     OutputStream *task_start_end_time_vs_id;
     OutputStream *task_start_time_vs_id_iters;
     //for the ete delay
     OutputStream *app_delay_info;
+    OutputStream *app_delay_running_info;
     //for the task waiting time
     OutputStream *task_waiting_time_info;
 
@@ -215,9 +244,8 @@ class GarnetNetwork : public Network, public Consumer
     int m_num_proc;
     int* m_num_task;
     int* m_num_edge;
-    int m_execution_iterations;
-    std::vector<std::vector<double> > task_start_time;
-    std::vector<std::vector<double> > task_end_time;
+    std::vector<std::vector<int> > task_start_time;
+    std::vector<std::vector<int> > task_end_time;
     std::vector<std::vector<int> > ETE_delay;
     //for construct architecture in task graph mode
     std::map<int, int> m_core_id_node_id; //core_id -> node_id
@@ -226,11 +254,14 @@ class GarnetNetwork : public Network, public Consumer
     int m_total_execution_iterations;
     std::string* m_application_name;
     int* m_applicaton_execution_iterations;
+    //for print ete_delay when run simulation
+    int* current_execution_iterations;
+    int** num_completed_tasks; 
     //for record point to point pkt lantency
     int m_num_core;
     int** src_dst_latency;
-
-    std::vector<int> vc_allocation_object_position;  //for vc to check vc_allocation_object position
+    //for vc to check vc_allocation_object position
+    std::vector<int> vc_allocation_object_position;
 
     // Statistical variables
     Stats::Vector m_packets_received;
@@ -265,8 +296,6 @@ class GarnetNetwork : public Network, public Consumer
     Stats::Formula m_avg_hops;
 
     //add for TG
-    Stats::Scalar m_avg_ete_delay;
-    Stats::Scalar m_ex_iters;
     Stats::Scalar m_total_task_execution_time;
 
   private:
