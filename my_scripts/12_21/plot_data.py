@@ -26,7 +26,7 @@ class PlotFunction():
         for key, value in self.y_data.items():
             legend_list.append(key)
             assert(i < len(line_type)) # aviod over the range of line_type
-            plt_ptr, = plt.plot([int(x) for x in value], line_type[i])
+            plt_ptr, = plt.plot([int(x) for x in value], line_type[i], markersize=4)
             plt_ptrs.append(plt_ptr)
             i += 1
 
@@ -75,18 +75,16 @@ class PlotFunction():
         if if_save:
             plt.savefig(dir+title+'.jpg')
 
-dir_path = "/home/wj/gem5_multiapp/Gem5_task_graph/my_STATS/11_25/multi_app/"
+dir_path = "/home/wj/gem5_multiapp/Gem5_task_graph/my_STATS/12_22_01/"
 result_path = dir_path+"results.txt"
 fig_path = dir_path+"FIGS/"
 link_result_path = dir_path+"LINK_RESULT/"
 log_path = dir_path + "log"
 
 ## Parameter Setting
-app=[1, 2, 3, 4, 5]
+app=[1, 2, 3, 4]
 mem_access=[20]
 mem_type = ['DDR3']
-vc_num=[2]
-vc_ddr=[0]
 para = ["Flits_received", "Average_hops", "Average_flit_latency", \
     "Average_network_flit_latency", "Average_flit_queueing_latency"]
 
@@ -95,73 +93,51 @@ with open(result_path) as results_file:
     result_data = results_file.readlines()
 
 result = {}
-for line in range(1, len(result_data)):
+for line in range(1, 5):
     info = result_data[line].strip().split()
     result[info[0]] = info[1:]
 
-for app in app:
-    app_name = "Application_0" + str(app)
-    for idx, param in enumerate(para):
-        y_data = []
-        for vd in vc_ddr:
-            ddr = []
-            for vn in vc_num:
-                if vn > vd:
-                    dir_name = "Application_0"+str(app)+"_Ring_VC_NUM_"+str(vn)+"_VC_DDR_"+str(vd)
-                    if len(result[dir_name]) == len(para):
-                        ddr.append(float(result[dir_name][idx]))
-                    else:
-                        ddr.append(0)
-                else:
-                    ddr.append(0)
-            y_data.append(ddr)
+for idx, param in enumerate(para):
+    y_data = []
+    app_name_ = []
+    for app in range(1,5):
+        app_name = "Application_0" + str(app)
+        dir_name = "Application_0"+str(app)+"_Ring"
+        y_data.append(float(result[dir_name][idx]))
+        app_name_.append(app_name)
         
-        bar_width = 0.2
-        tick_label = ["vc_num_2", "vc_num_4", "vc_num_6", "vc_num_8"]
+    plt.clf()
+    plt.bar(range(len(y_data)), y_data, width=0.5, align="center", tick_label=app_name_, alpha=0.5)
 
-        plt.clf()
-        x = np.arange(4)
-        for i in range(len(y_data)):
-            label = "vc_ddr_" + str(vc_ddr[i])
-            plt.bar(x+bar_width*i, y_data[i], bar_width, align="center", label=label, alpha=0.5)
-
-        xlabel = "Different VC_NUM"
-        plt.xlabel(xlabel)
-        plt.ylabel(param)
-        plt.xticks(x+bar_width, tick_label)
-        plt.legend()
-        plt.tight_layout()
-        title = xlabel + " vs. " + param
-        plt.title(title)
-        plt.tight_layout()
-        plt.savefig(fig_path+title+"_"+app_name+".jpg")
+    xlabel = "Different Application"
+    plt.xlabel(xlabel)
+    plt.ylabel(param)
+    plt.tight_layout()
+    title = xlabel + " vs. " + param
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(fig_path+title+".jpg")
 
 ## ETE_Delay
-x_ticklabels=['10', '20', '30', '40', '50', '60', '70', '80', '90', '100']
-x_ticks=[i*10 for i in range(1,11)]
+x_ticklabels=['10', '20', '30', '40', '50', '60', '70', '80', '90', '100', '110', '120', '130', '140', '150']
+x_ticks=[i*10 for i in range(1,16)]
 
 
 # for ap in app:
-for ap in range(1,6):
+for ap in range(1,5):
     app_name = "Application_0" + str(ap)
     data = {}
-    for vd in vc_ddr:
-        for vn in vc_num:
-            if vn > vd:
-                key_word = "VC_NUM_"+str(vn)+"_VC_DDR_"+str(vd)
-                dir_name = app_name +"_Ring_VC_NUM_"+str(vn)+"_VC_DDR_"+str(vd)
-                file_name = "/application_delay_info.log"
-                
-                with open(dir_path+dir_name+file_name) as log_file:
-                    log_data = log_file.readlines()
-                
-                ete_delay = []
-                if len(log_data) > 0:
-                    for i in range(4, 4+100):
-                        ete_delay.append(log_data[i].strip().split()[-1])
-                
-                data[key_word] = ete_delay
+    dir_name = app_name +"_Ring"
+    file_name = "/application_delay_running_info.log"
+    
+    with open(dir_path+dir_name+file_name) as log_file:
+        log_data = log_file.readlines()
+    
+    ete_delay = []
+    for i in range(1, 151):
+        ete_delay.append(log_data[i].strip().split()[-1])
+    
+    data[app_name] = ete_delay
 
     p = PlotFunction(data, "Execution Iterations", "ETE Delay", x_ticklabels, x_ticks, '_'+app_name)
     p.save_figs(fig_path, p.title)
-    

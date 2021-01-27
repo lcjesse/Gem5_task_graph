@@ -166,7 +166,7 @@ class NetworkInterface : public ClockedObject, public Consumer
     //task_list in each core
     std::vector<std::vector<std::vector<GraphTask> > > task_list;
     std::vector<std::vector<std::vector<int> > > task_id_list;
-    std::vector<std::vector<int> > task_in_waiting_list;
+    //std::vector<std::vector<int> > task_in_waiting_list;
     std::vector<int> waiting_list_offset;
     //thread_queue[num_cores][num_threads]
     int** task_in_thread_queue;
@@ -176,6 +176,10 @@ class NetworkInterface : public ClockedObject, public Consumer
     //for multi-app round robin
     int* app_exec_rr;
     int** app_idx_in_thread_queue;
+    //
+    int* initial_task_thread_queue;
+    int* remainad_initial_task_exec_time;
+    bool* initial_task_busy_flag;
 
     //for construct architecture in tg mode
     int m_num_cores;

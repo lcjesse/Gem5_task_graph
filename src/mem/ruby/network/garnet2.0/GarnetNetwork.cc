@@ -712,7 +712,8 @@ GarnetNetwork::loadTraffic(std::string filename){
                 e.set_dst_proc_id(v[4]);
                 //Note Here! We just consider the size of the out memory for the source task
                 //e.set_out_memory(v[5],v[6]);
-                e.set_out_memory(v[5],1);
+                //e.set_out_memory(v[5],10);
+                e.set_out_memory(v[5],10);
 
                 // if (v[6]==-1)
                 //     e.set_out_memory(v[5],INT_MAX);
@@ -835,6 +836,41 @@ GarnetNetwork::wakeup(){
             //collect simulation data
             PrintAppDelay();
             PrintTaskWaitingInfo();
+
+            for (int i = 0; i < m_nodes / 2; i++)
+            {
+                int num_cores_in_node = m_nis[i]->get_num_cores();
+                for (int j = 0; j < num_cores_in_node; j++)
+                {
+                    int core_id = m_nis[i]->get_core_id_by_index(j);
+                        for (int app_idx = 0; app_idx < m_num_application; app_idx++)
+                        {
+                            int task_list_len = m_nis[i]->get_task_list_length(j, app_idx);
+                            if (task_list_len == 0)
+                                continue;
+                            string core_name = m_nis[i]->get_core_name_by_index(j);
+                            printf("Core [%5d] : %s\n", core_id, core_name.c_str());
+                            for (int k = 0; k < task_list_len; k++)
+                            {
+                                GraphTask &temp_task = m_nis[i]->get_task_by_offset(core_id, app_idx, k);
+                                printf("\tTask [%3d] Completed : %d\n", temp_task.get_id(), temp_task.get_completed_times());
+                            }
+                        }
+                    
+                }
+            }
+
+            for (int i = 0; i < m_nodes / 2; i++)
+            {
+                int num_cores_in_node = m_nis[i]->get_num_cores();
+                for (int j = 0; j < num_cores_in_node; j++)
+                {
+                    string core_name = m_nis[i]->get_core_name_by_index(j);
+                    int core_buffer_size = m_nis[i]->get_core_buffer_size(j);
+                    printf("Core Name %10s\tBuffer Size %10d\tBuffer Sent %10d\n", core_name.c_str(), core_buffer_size, m_nis[i]->core_buffer_sent[j]);
+                }
+            }
+            printf("\n");
 
             simout.close(task_start_time_vs_id);
             simout.close(task_start_end_time_vs_id);
