@@ -181,6 +181,28 @@ public:
        //for multi-app
         void set_app_idx(int i){ app_idx=i; return; }
         int get_app_idx() { return app_idx; }
+        //decide whether the flit in this edge token list
+        bool find_in_token_list(flit* fl) {
+                        int i;
+                        // find token
+                        for (i = 0; i < received_token_list.size(); i++)
+                        {
+                                if (received_token_list.at(i).id ==
+                                        fl->get_tg_info().token_id)
+                                {
+                                        break;
+                                }
+                        }
+                        //new token
+                        if (i >= received_token_list.size())
+                        {
+                                return false;
+                        } else {
+                                return true;
+                        }
+                }
+
+        int get_total_incoming_token(){ return total_incoming_token; }
 
 private:
         // the statistical token sizes follow Gaussian distribution

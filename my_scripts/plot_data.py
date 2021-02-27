@@ -81,7 +81,7 @@ if_plot_all = True
 if_compare = False
 if_plot_network_performance = False
 if_plot_other_metrics = False
-iterations = 5000
+iterations = 100
 ############################################################################################################
 
 ############################################################################################################
@@ -90,7 +90,7 @@ iterations = 5000
 
 if if_plot_all:
 
-    dir_path = "/home/wj/gem5_multiapp/Gem5_task_graph/my_STATS/01_21_10_44_pe_7_1_cyc_5000_outmem_10/"
+    dir_path = "/home/wj/gem5_multiapp/Gem5_task_graph/my_STATS/02_21_02_22_pe_7_1_cyc_1000_outmem_10/"
     print("Work Directory is Now at :", dir_path)
     print("Plot ete delay")
     result_path = dir_path+"results.txt"
@@ -120,7 +120,7 @@ if if_plot_all:
                     
         ete_delay[app_name] = each_iter_data
 
-    x_ticks=[i*500 for i in range(1,(int(iterations/500)+1))]
+    x_ticks=[i*10 for i in range(1,(int(iterations/10)+1))]
     x_ticklabels=[str(i) for i in x_ticks]
 
     for app in applicaton:
@@ -144,7 +144,7 @@ if if_compare:
     mem_access=[20]
     mem_type = ['DDR3']
 
-    dir_path = "/home/wj/gem5_multiapp/Gem5_task_graph/my_STATS/01_21_02_34_pe_7_1_cyc_1000_outmem_10/"
+    dir_path = "/home/wj/gem5_multiapp/Gem5_task_graph/my_STATS/01_28_05_57_pe_7_1_cyc_1000_outmem_10/"
     print("Compare ete delay with other version")
     print("Work Directory is Now at :", dir_path)
 
@@ -163,7 +163,7 @@ if if_compare:
                     
         old_ete_delay[app_name] = each_iter_data
 
-    dir_path = "/home/wj/gem5_multiapp/Gem5_task_graph/my_STATS/01_21_02_35_pe_7_10_cyc_1000_outmem_10/"
+    dir_path = "/home/wj/gem5_multiapp/Gem5_task_graph/my_STATS/01_28_07_09_pe_7_1_cyc_1000_outmem_10/"
     print("Work Directory is Now at :", dir_path)
     result_path = dir_path+"results.txt"
     ## plot in the new 
@@ -185,7 +185,7 @@ if if_compare:
                     
         new_ete_delay[app_name] = each_iter_data
 
-    x_ticks=[i*10 for i in range(1,(int(iterations/10)+1))]
+    x_ticks=[i*100 for i in range(1,(int(iterations/100)+1))]
     x_ticklabels=[str(i) for i in x_ticks]
 
 

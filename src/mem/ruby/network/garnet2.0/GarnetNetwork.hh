@@ -220,6 +220,8 @@ class GarnetNetwork : public Network, public Consumer
     OutputStream *app_delay_running_info;
     //for the task waiting time
     OutputStream *task_waiting_time_info;
+    //
+    bool back_pressure(int m_id);
 
   protected:
     // Configuration
@@ -244,9 +246,11 @@ class GarnetNetwork : public Network, public Consumer
     int m_num_proc;
     int* m_num_task;
     int* m_num_edge;
+    int* m_num_head_task;
     std::vector<std::vector<int> > task_start_time;
     std::vector<std::vector<int> > task_end_time;
     std::vector<std::vector<int> > ETE_delay;
+    std::vector<std::vector<int> > head_task;
     //for construct architecture in task graph mode
     std::map<int, int> m_core_id_node_id; //core_id -> node_id
     //for multi-application traffic

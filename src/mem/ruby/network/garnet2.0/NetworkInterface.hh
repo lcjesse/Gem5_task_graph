@@ -75,7 +75,7 @@ class NetworkInterface : public ClockedObject, public Consumer
     uint32_t functionalWrite(Packet *);
 
     //for task graph traffic
-    int add_task(int app_idx, GraphTask &t);
+    int add_task(int app_idx, GraphTask &t, bool is_head_task);
     int	sort_task_list();
     int get_task_offset_by_task_id(int core_id, int app_idx, int tid);
     GraphTask& get_task_by_task_id(int core_id, int app_idx, int tid);
@@ -115,7 +115,17 @@ class NetworkInterface : public ClockedObject, public Consumer
     }
 
     std::vector<int> core_buffer_sent;
-    void initializeTaskIdList();    
+    void initializeTaskIdList();
+
+    int get_num_tokens(){
+      if (m_id == 8){
+        GraphTask &c_task = get_task_by_task_id(11, 0, 1);
+        GraphEdge &e = c_task.get_incoming_edge_by_eid(0);
+        return e.get_num_incoming_token();
+      } else {
+        return -2;
+      }
+    }
 
   private:
     GarnetNetwork *m_net_ptr;
@@ -165,6 +175,7 @@ class NetworkInterface : public ClockedObject, public Consumer
     //for task graph traffic
     //task_list in each core
     std::vector<std::vector<std::vector<GraphTask> > > task_list;
+    std::vector<std::vector<std::vector<GraphTask> > > head_task_list;
     std::vector<std::vector<std::vector<int> > > task_id_list;
     //std::vector<std::vector<int> > task_in_waiting_list;
     std::vector<int> waiting_list_offset;
@@ -177,6 +188,7 @@ class NetworkInterface : public ClockedObject, public Consumer
     int* app_exec_rr;
     int** app_idx_in_thread_queue;
     //
+    int num_initial_thread;
     int* initial_task_thread_queue;
     int* remainad_initial_task_exec_time;
     bool* initial_task_busy_flag;
@@ -202,6 +214,10 @@ class NetworkInterface : public ClockedObject, public Consumer
     int core_buffer_round_robin;
     const int crossbar_delay = 2;
 
+    //for back pressure when core receive the flit
+    std::vector<std::vector<flit* > > input_buffer; //core_num * buffer_size
+    std::vector<int> input_buffer_size; //buffer_size
+    const int not_used_token = 100;
 
     struct _compare_task
     {

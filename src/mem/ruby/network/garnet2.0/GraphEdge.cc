@@ -30,9 +30,9 @@ GraphEdge::record_pkt(flit* fl, int time)
         //However, it only applys when this is an inter-core pkt. Otherwise,
         //the memory is reserved already --in fact, data is located at the
         //same place
-                if (fl->get_route().src_ni != fl->get_route().dest_ni)
+                if (src_proc_id != dst_proc_id)
                 {
-                        //assert(update_in_memory_write_pointer());
+                        assert(update_in_memory_write_pointer());
                 }
                 token_info_type temp;
                 temp.id = fl->get_tg_info().token_id;
@@ -56,6 +56,7 @@ GraphEdge::record_pkt(flit* fl, int time)
                 token_receive_time.push_back(time);
                 received_token_list.erase(received_token_list.begin() + i);
                 received_token_list.shrink_to_fit();
+                //if (id==0) printf("token size %d\n", num_incoming_token);
         } else if (received_token_list.at(i).received_pkt > \
                 received_token_list.at(i).length_in_pkt) {
                 fatal(" error receiving token when record flit ! ");

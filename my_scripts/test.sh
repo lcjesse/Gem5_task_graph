@@ -10,12 +10,12 @@
 GEM5=/home/wj/gem5_multiapp/Gem5_task_graph
 DATE=`date +%m_%d_%H_%M`
 # OUT_FILE_DIR=${GEM5}/my_STATS/11_25/multi_app
-OUT_FILE_DIR=${GEM5}/my_STATS/${DATE}_pe_7_10_cyc
-BENCHMARK_DIR=${GEM5}/my_benchmarks/01_14_formal/Scale_1_Inject_10
-ARCHITECTURE_DIR=${GEM5}/my_benchmarks/01_14_formal
+OUT_FILE_DIR=${GEM5}/my_STATS/test1
+BENCHMARK_DIR=${GEM5}/my_benchmarks/02_23
+ARCHITECTURE_DIR=${GEM5}/my_benchmarks/02_23
 
 # the app.cfg file number
-app=(1)
+app=(2)
 mem_access=(20)
 mem_type=(DDR3)
 
@@ -54,13 +54,14 @@ if [ "$1" = "run" ];then
     {
             DIR_NAME=Application_0${APP_NUM}_Ring
             mkdir -p ${OUT_FILE_DIR}/${DIR_NAME}
-            BENCHMARK_FILE=${BENCHMARK_DIR}/Memory_Access_${MEM_ACCESS}_Memory_Type_${MEM_TYPE}/multi_application_0${APP_NUM}.cfg
+            #BENCHMARK_FILE=${BENCHMARK_DIR}/Memory_Access_${MEM_ACCESS}_Memory_Type_${MEM_TYPE}/multi_application_0${APP_NUM}.cfg
+            #ARCHITECTURE_FILE=${ARCHITECTURE_DIR}/Heterogeneous_SoC_with_Ring_Topology.arch
+            BENCHMARK_FILE=${BENCHMARK_DIR}/multi_application_0${APP_NUM}.cfg
             ARCHITECTURE_FILE=${ARCHITECTURE_DIR}/Heterogeneous_SoC_with_Ring_Topology.arch
-
             # echo "Bechmark file : ${BENCHMARK_FILE}" > ${OUT_FILE_DIR}/${DIR_NAME}/log
             # echo "Architecture file : ${ARCHITECTURE_FILE}" >> ${OUT_FILE_DIR}/${DIR_NAME}/log
             
-            ${GEM5}/build/NULL/gem5.debug \
+            ${GEM5}/build/NULL/gem5.debug  \
             --outdir ${OUT_FILE_DIR}/${DIR_NAME} \
             ${GEM5}/configs/example/garnet_synth_traffic.py \
             --topology=Ring \
@@ -75,12 +76,12 @@ if [ "$1" = "run" ];then
             --routing-algorithm=2 \
             --vcs-per-vnet=2 \
             --link-width-bits=256 \
-            --architecture-file="${ARCHITECTURE_FILE}" 
+            --architecture-file="${ARCHITECTURE_FILE}"
             #--print-task-execution-info #>>${OUT_FILE_DIR}/${DIR_NAME}/log 2>&1
             #--ruby-clock=2GHz
             #--mesh-rows=1
             #--sys-clock=2GHz
-            #--debug-flags=TaskGraph
+            #--debug-flags=TaskGraph,Ruby
             #--execution-iteration=100
             #--print-task-execution-info
     }

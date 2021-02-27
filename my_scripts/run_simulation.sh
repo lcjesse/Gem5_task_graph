@@ -10,9 +10,10 @@
 GEM5=/home/wj/gem5_multiapp/Gem5_task_graph
 DATE=`date +%m_%d_%H_%M`
 # OUT_FILE_DIR=${GEM5}/my_STATS/11_25/multi_app
-OUT_FILE_DIR=${GEM5}/my_STATS/${DATE}_pe_7_1_cyc_5000_outmem_10
-BENCHMARK_DIR=${GEM5}/my_benchmarks/01_14_formal/Scale_1_Inject_1_simplify
-ARCHITECTURE_DIR=${GEM5}/my_benchmarks/01_14_formal
+OUT_FILE_DIR=${GEM5}/my_STATS/${DATE}_100_outmem_10
+OUT_FILE_DIR=${GEM5}/my_STATS/${DATE}_100_outmem_10
+BENCHMARK_DIR=${GEM5}/my_benchmarks/02_23/Scale_1_Inject_1_simplify
+ARCHITECTURE_DIR=${GEM5}/my_benchmarks/01_28
 
 # the app.cfg file number
 app=(1 2 3 4 5)

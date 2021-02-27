@@ -71,6 +71,7 @@ class NetworkLink : public ClockedObject, public Consumer
 
     uint32_t functionalWrite(Packet *);
     void resetStats();
+    int getsize() {return linkBuffer->getSize(); }
 
   private:
     const int m_id;
