@@ -299,62 +299,36 @@ NetworkInterface::wakeup()
             }
         }
         else {
-            //here we first peek the flit destination and check the buffer size of the core
-            bool readFlitThisCycle = false;
-
-            flit *h_flit = inNetLink->peekLink();
-            //task graph
-            //int temp_src = h_flit->get_tg_info().src_task;
-            int temp_task = h_flit->get_tg_info().dest_task;
-            int temp_edge_id = h_flit->get_tg_info().edge_id;
-
-            int app_idx = h_flit->get_tg_info().app_idx;
+            flit *t_flit = inNetLink->consumeLink();
+            int temp_task = t_flit->get_tg_info().dest_task;
+            int temp_edge_id = t_flit->get_tg_info().edge_id;
+            int app_idx = t_flit->get_tg_info().app_idx;
             int core_id = get_core_id_by_task_id(app_idx, temp_task);
-            //int core_idx = lookUpMap(m_core_id_index, core_id);
 
             GraphTask &dest_task = get_task_by_task_id(core_id, app_idx, temp_task);
             GraphEdge &dest_edge = dest_task.get_incoming_edge_by_eid(temp_edge_id);
 
-            if (h_flit->get_type() == HEAD_ || h_flit->get_type() == HEAD_TAIL_) {
-                if ( dest_edge.get_in_memory_remained() <= 0 && !dest_edge.find_in_token_list(h_flit)){
-                    //if (temp_edge_id==2)
-                    //printf("Task [%3d] In_Edge [%3d] from Task [%3d] in memory full ! Cannot receive pkt !\n",
-                    //temp_task, temp_edge_id, temp_src);
-                } else {
-                    readFlitThisCycle = true;
-                }
-            } else {
-                readFlitThisCycle = true;
-                //if (temp_edge_id==2)
-                    //printf("Task [%3d] In_Edge [%3d] from Task [%3d] receive pkt !\n",
-                    //temp_task, temp_edge_id, temp_src);
+            t_flit->set_dequeue_time(curCycle());
+
+            if (t_flit->get_type() == TAIL_ || t_flit->get_type() == HEAD_TAIL_)
+            {
+                //received a pkt
+                dest_edge.record_pkt(t_flit, curCycle());
+                /*
+                DPRINTF(TaskGraph, " NI %d received the tail flit \
+                from the NI %d \n", m_id, t_flit->get_route().src_ni);
+                */
+                sendCredit(t_flit, true);
+                // Update stats and delete flit pointer
+                incrementStats(t_flit);
+                delete t_flit;
             }
-
-            if (readFlitThisCycle){
-                flit *t_flit = inNetLink->consumeLink();
-
-                t_flit->set_dequeue_time(curCycle());
-
-                if (t_flit->get_type() == TAIL_ || t_flit->get_type() == HEAD_TAIL_)
-                {
-                    //received a pkt
-                    dest_edge.record_pkt(t_flit, curCycle());
-                    /*
-                    DPRINTF(TaskGraph, " NI %d received the tail flit \
-                    from the NI %d \n", m_id, t_flit->get_route().src_ni);
-                    */
-                    sendCredit(t_flit, true);
-                    // Update stats and delete flit pointer
-                    incrementStats(t_flit);
-                    delete t_flit;
-                }
-                else
-                {
-                    sendCredit(t_flit, false);
-                    // Update stats and delete flit pointer.
-                    incrementStats(t_flit);
-                    delete t_flit;
-                }
+            else
+            {
+                sendCredit(t_flit, false);
+                // Update stats and delete flit pointer.
+                incrementStats(t_flit);
+                delete t_flit;
             }
 
             /*
@@ -863,12 +837,12 @@ NetworkInterface::enqueueTaskInThreadQueue()
             int app_idx = (kk+app_exec_rr[i]) % m_num_apps;
             if (task_list[i][app_idx].size()<=0)
                 continue;
-
+            /*
             if (current_core_id==-1){
                 printf("Cycle <<%lu>> rr_idx%3d\n",\
                     u_int64_t(curCycle()),task_to_exec_round_robin[i][app_idx]);
             }
-
+            */
             int round_robin_offset = 0;
 
             //for (unsigned int j=0;j<temp_task_id_list.size();j++){
@@ -923,7 +897,7 @@ NetworkInterface::enqueueTaskInThreadQueue()
                 for (jj=0;jj<c_task.get_size_of_outgoing_edge_list();jj++){
                     GraphEdge &temp_edge = c_task.get_outgoing_edge_by_offset(jj);
                     if (temp_edge.get_out_memory_remained() <= 0){
-                        printf("core %d [ %s ] task %d out buffer full !\n", current_core_id, m_core_id_name[current_core_id].c_str(), c_task.get_id());
+                        //printf("core %d [ %s ] task %d out buffer full !\n", current_core_id, m_core_id_name[current_core_id].c_str(), c_task.get_id());
                         break;
                     }
                     //assert(temp_edge.get_out_memory_remained() > 0);
@@ -992,10 +966,10 @@ NetworkInterface::enqueueTaskInThreadQueue()
                         if (dest_proc_id == c_task.get_proc_id()){
                             assert(dest_proc_id == current_core_id);
                             int dest_task_id=temp_edge.get_dst_task_id();
-                                                        int edge_id=temp_edge.get_id();
-                                                        GraphTask &dst_task= get_task_by_task_id(dest_proc_id, app_idx, dest_task_id);
-                                                        GraphEdge &in_edge=dst_task.get_incoming_edge_by_eid(edge_id);
-                                                        assert(in_edge.update_in_memory_write_pointer());
+                            int edge_id=temp_edge.get_id();
+                            GraphTask &dst_task= get_task_by_task_id(dest_proc_id, app_idx, dest_task_id);
+                            GraphEdge &in_edge=dst_task.get_incoming_edge_by_eid(edge_id);
+                            assert(in_edge.update_in_memory_write_pointer());
                         }
 
                         double token_size = temp_edge.get_random_token_size();
@@ -1031,8 +1005,10 @@ NetworkInterface::enqueueTaskInThreadQueue()
                         GraphEdge &temp_edge = c_task.get_incoming_edge_by_offset(k);
                         temp_edge.consume_token();
                         assert(temp_edge.update_in_memory_read_pointer());
-
                         int src_proc_id = temp_edge.get_src_proc_id();
+                        int src_task_id = temp_edge.get_src_task_id();
+                        int edge_id = temp_edge.get_id();
+
                         if (src_proc_id == c_task.get_proc_id()){
                             assert(src_proc_id == current_core_id);
                             int src_task_id = temp_edge.get_src_task_id();
@@ -1040,10 +1016,12 @@ NetworkInterface::enqueueTaskInThreadQueue()
                             GraphTask &src_task = get_task_by_task_id(current_core_id, app_idx, src_task_id);
                             GraphEdge &out_edge = src_task.get_outgoing_edge_by_eid(edge_id);
                             assert(out_edge.update_out_memory_read_pointer());
+                        } else {
+                            m_net_ptr->update_in_memory_info(src_proc_id, app_idx, src_task_id, edge_id);
                         }
                     }
 
-                    //if (current_core_id==4){
+                    /*if (current_core_id==4){
                             printf("Core %d task %d start executing\n", \
                             current_core_id, c_task.get_id());
                             printf("Task in executing list: ");
@@ -1052,7 +1030,7 @@ NetworkInterface::enqueueTaskInThreadQueue()
                                     printf("%d\t", task_in_thread_queue[i][iii]);
                             }
                             printf("\n");
-                    //}
+                    }*/
 
                     if (c_task.get_id()==test_task)
                         printf("Task %3d start executing %3d times\n", \
@@ -1081,7 +1059,7 @@ NetworkInterface::enqueueTaskInThreadQueue()
                     if(c_task.get_c_e_times()<=c_task.get_required_times())
                         m_net_ptr->update_start_end_time(app_idx, c_task.get_c_e_times()-1, curCycle(), curCycle()+execution_time);
 
-                    //if (current_core_id==4){
+                    /*if (current_core_id==4){
                         printf("Cycle [ %lu ] Task rr ========> %3d\n", u_int64_t(curCycle()),task_to_exec_round_robin[i][app_idx]);
                         for (unsigned int iii=0;iii<task_list[i][app_idx].size();iii++){
                             GraphTask &t = task_list[i][app_idx][iii];
@@ -1094,7 +1072,7 @@ NetworkInterface::enqueueTaskInThreadQueue()
                             printf("have received incoming token [ %3d ]\n", min_token);
                         }
                         printf("\n\n");
-                    //}
+                    }*/
 
                     //For the task has in edges, compare the receive token time of
                     //the iteration and choose the max cycle.
@@ -1121,10 +1099,10 @@ NetworkInterface::enqueueTaskInThreadQueue()
                         if (dest_proc_id == c_task.get_proc_id()){
                             assert(dest_proc_id == current_core_id);
                             int dest_task_id = temp_edge.get_dst_task_id();
-                                                        int edge_id = temp_edge.get_id();
-                                                        GraphTask &dst_task = get_task_by_task_id(dest_proc_id, app_idx, dest_task_id);
-                                                        GraphEdge &in_edge = dst_task.get_incoming_edge_by_eid(edge_id);
-                                                        assert(in_edge.update_in_memory_write_pointer());
+                            int edge_id = temp_edge.get_id();
+                            GraphTask &dst_task = get_task_by_task_id(dest_proc_id, app_idx, dest_task_id);
+                            GraphEdge &in_edge = dst_task.get_incoming_edge_by_eid(edge_id);
+                            assert(in_edge.update_in_memory_write_pointer());
                         }
 
                         double token_size = temp_edge.get_random_token_size();
@@ -1527,6 +1505,7 @@ NetworkInterface::intraClusterOut()
         
         int dst_core_idx = lookUpMap(m_core_id_index, dst_core_id);
 
+/*
         //check in memory of dst task
         bool dstInMemoryFull = true;
         GraphTask& dst_task = get_task_by_task_id(dst_core_id, fl->get_tg_info().app_idx,\
@@ -1538,9 +1517,11 @@ NetworkInterface::intraClusterOut()
         } else {
             dstInMemoryFull = false;
         }
+*/
 
         //because send to other core, so first record sent pkt
-        if (!crossbar_busy_out[dst_core_idx] && !dstInMemoryFull){
+        //if (!crossbar_busy_out[dst_core_idx] && !dstInMemoryFull){
+        if (!crossbar_busy_out[dst_core_idx]){
         //the output is not busy
 
             /*GraphTask& dst_task = get_task_by_task_id(dst_core_id, fl->get_tg_info().app_idx,\
@@ -1602,11 +1583,12 @@ NetworkInterface::interClusterOut()
         int dst_node_id = fl->get_route().dest_ni;
 
         int vc=calculateVC(fl->get_vnet());
- 
+
         if (vc == -1)
             break;
 
         //check the buffer in the dest core
+
         if (! out_edge.record_sent_pkt(fl)){
             continue;
         }else{

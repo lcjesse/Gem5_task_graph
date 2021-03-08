@@ -77,24 +77,25 @@ class PlotFunction():
 
 ############################################################################################################
 ##################################### Top Parameters Settings  #############################################
+if_throughput = False
 if_plot_all = True
-if_throughput = True
 if_compare = False
 if_plot_network_performance = False
 if_plot_other_metrics = False
-iterations = 10000
-frequency = 1e9
+iterations = 1000
 ############################################################################################################
 
 ############################################################################################################
-########################## Plot throughput for all applications (1-4)  ######################################
+########################## Plot throughput for all applications (1-5)  ######################################
 ############################################################################################################
 
 if if_throughput:
-    dir_path = "/home/wj/gem5_multiapp/Gem5_task_graph/my_STATS/03_02_16_49/"
+    dir_path = "/home/wj/Gem5_task_graph/my_STATS/02_24_11_59/"
     print("Work Directory is Now at :", dir_path)
     print("Plot throughput")
+    result_path = dir_path+"results.txt"
     fig_path = dir_path+"FIGS/"
+    link_result_path = dir_path+"LINK_RESULT/"
 
     # Parameter Setting
     app=[1, 2, 3, 4]
@@ -104,39 +105,53 @@ if if_throughput:
     mem_access=[20]
     mem_type = ['DDR3']
 
-    all_throughput = {}
+    throughput = {}
+    time_ = {}
+    c_t_ = {}
     for app in applicaton:
         app_name = "Application_0" + app
-        each_throughput_data = []
+        time=[]
+        completed=[]
+        c_t = {}
         dir_name = app_name +"_Ring"
-        log_path = dir_path + dir_name + "/application_delay_running_info.log"
+        log_path = dir_path + dir_name + "/data"
         with open(log_path) as log_file:
             log_data = log_file.readlines()
 
-        for i in range(1, iterations+1):
-            end_time = log_data[i].strip().split()[-2]
-            current_tp = float(i)*frequency/float(end_time)
-            each_throughput_data.append(current_tp)
+        for i in range(len(log_data)):
+            line=log_data[i]
+            time.append(float(line.strip().split()[0]))
+            completed.append(float(line.strip().split()[1]))
+            c_t[float(line.strip().split()[1])] = float(line.strip().split()[0])
 
-        all_throughput[app_name] = each_throughput_data
+        app_throughput=[]
+        for i in range(len(log_data)):
+            app_throughput.append(completed[i]*1e9/time[i])
 
-    x_ticks=[i*1000 for i in range(1,(int(iterations/1000)+1))]
-    x_ticklabels=[str(i) for i in x_ticks]
+        time_[app_name] = time
+        throughput[app_name] = app_throughput
+        c_t_[app_name] = c_t
 
     for app in applicaton:
         data = {}
         app_name = "Application_0" + app
-        data[app_name] = all_throughput[app_name]
-        p = PlotFunction(data, "Execution Iterations", "Throughput(pps)", x_ticklabels, x_ticks, ' for_App_0'+str(app))
+        data[app_name] = throughput[app_name]
+        # 20 get one point
+        x = int(len(time_[app_name]) / 40)
+
+        x_ticks=[i*40 for i in range(x)]
+        x_ticklabels=[str(time_[app_name][i]) for i in x_ticks]
+        p = PlotFunction(data, "Simulation Time (cycle)", "Throughput(pps)", x_ticklabels, x_ticks, ' for_App_0'+str(app))
         p.save_figs(fig_path, p.title)
 
+
 ############################################################################################################
-########################## Plot ete delay for all applications (1-4)  ######################################
+########################## Plot ete delay for all applications (1-5)  ######################################
 ############################################################################################################
 
 if if_plot_all:
 
-    dir_path = "/home/wj/gem5_multiapp/Gem5_task_graph/my_STATS/03_02_16_49/"
+    dir_path = "/home/wj/Gem5_task_graph/my_STATS/02_25_02_05/"
     print("Work Directory is Now at :", dir_path)
     print("Plot ete delay")
     result_path = dir_path+"results.txt"
@@ -159,14 +174,14 @@ if if_plot_all:
         log_path = dir_path + dir_name + "/application_delay_running_info.log"
         with open(log_path) as log_file:
             log_data = log_file.readlines()
-        
+
         for i in range(1, iterations+1):
             delay = log_data[i].strip().split()[-1]
             each_iter_data.append(delay)
-                    
+
         ete_delay[app_name] = each_iter_data
 
-    x_ticks=[i*1000 for i in range(1,(int(iterations/1000)+1))]
+    x_ticks=[i*100 for i in range(1,(int(iterations/100)+1))]
     x_ticklabels=[str(i) for i in x_ticks]
 
     for app in applicaton:
@@ -202,17 +217,17 @@ if if_compare:
         log_path = dir_path + dir_name + "/application_delay_running_info.log"
         with open(log_path) as log_file:
             log_data = log_file.readlines()
-        
+
         for i in range(1, iterations+1):
             delay = log_data[i].strip().split()[-1]
             each_iter_data.append(delay)
-                    
+
         old_ete_delay[app_name] = each_iter_data
 
     dir_path = "/home/wj/gem5_multiapp/Gem5_task_graph/my_STATS/01_28_07_09_pe_7_1_cyc_1000_outmem_10/"
     print("Work Directory is Now at :", dir_path)
     result_path = dir_path+"results.txt"
-    ## plot in the new 
+    ## plot in the new
     fig_path = dir_path+"FIGS/"
     link_result_path = dir_path+"LINK_RESULT/"
 
@@ -224,11 +239,11 @@ if if_compare:
         log_path = dir_path + dir_name + "/application_delay_running_info.log"
         with open(log_path) as log_file:
             log_data = log_file.readlines()
-        
+
         for i in range(1, iterations+1):
             delay = log_data[i].strip().split()[-1]
             each_iter_data.append(delay)
-                    
+
         new_ete_delay[app_name] = each_iter_data
 
     x_ticks=[i*100 for i in range(1,(int(iterations/100)+1))]
@@ -279,7 +294,7 @@ if if_plot_network_performance:
             dir_name = "Application_0"+str(app)+"_Ring"
             y_data.append(float(result[dir_name][idx]))
             app_name_.append(app_name)
-            
+
         plt.clf()
         plt.bar(range(len(y_data)), y_data, width=0.5, align="center", tick_label=app_name_, alpha=0.5)
 
@@ -323,7 +338,7 @@ if if_plot_other_metrics:
                     log_path = dir_path + key_word + "/task_waiting_time_info.log"
                     with open(log_path) as log_file:
                         log_data = log_file.readlines()
-                    
+
                     start_idx = -1
                     for i in range(len(log_data)):
                         if kk in log_data[i]:
@@ -338,7 +353,7 @@ if if_plot_other_metrics:
                         each_iter_data[12] = 300000
                     else:
                         each_iter_data[12]=10000
-                    
+
         task_waiting[app_name] = each_iter_data
 
     x_ticklabels=['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19']

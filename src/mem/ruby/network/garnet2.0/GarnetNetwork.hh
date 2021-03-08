@@ -216,12 +216,16 @@ class GarnetNetwork : public Network, public Consumer
     OutputStream *task_start_end_time_vs_id;
     OutputStream *task_start_time_vs_id_iters;
     //for the ete delay
-    OutputStream *app_delay_info;
+    OutputStream *throughput_info;
     OutputStream *app_delay_running_info;
+
+    OutputStream *network_performance_info;
     //for the task waiting time
     OutputStream *task_waiting_time_info;
     //
     bool back_pressure(int m_id);
+    // update the in memory remianed information for the src task in src core when record pkt
+    void update_in_memory_info(int core_id, int app_idx, int src_task_id, int edge_id);
 
   protected:
     // Configuration
