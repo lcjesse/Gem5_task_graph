@@ -74,6 +74,8 @@ GarnetNetwork::GarnetNetwork(const Params *p)
     m_architecture_file = p->architecture_file;
     m_print_task_execution_info = p->print_task_execution_info;
     m_vc_allocation_object = p->vc_allocation_object;
+    m_in_mem_size = p->in_mem_size;
+    m_out_mem_size = p->out_mem_size;
 
     m_enable_fault_model = p->enable_fault_model;
     if (m_enable_fault_model)
@@ -174,9 +176,13 @@ GarnetNetwork::init()
         *(app_delay_running_info->stream())<<"Application\tIteration\tStart_time\tEnd_time\tExecution_Delay"<<endl;
 
         network_performance_info = simout.open("network_performance.log",ios_base::out|ios_base::app, false, true);
-        *(app_delay_running_info->stream())<<"Average_Flit_Latency\tAverage_Flit_Network_Latency\tAverage_Flit_Queueing_Latency\tFlits_Received\tAverage_Flit_Hops"<<endl;
+        *(network_performance_info->stream())<<"Application\tIteration\tAverage_Flit_Latency\tAverage_Flit_Network_Latency\tAverage_Flit_Queueing_Latency\tFlits_Received\tAverage_Flit_Hops"<<endl;
 
         task_waiting_time_info = simout.create("task_waiting_time_info.log", false, true);
+
+        // start_time_info = simout.open("start_time_info.log",ios_base::out|ios_base::app, false, true);
+        // end_time_info = simout.open("end_time_info.log",ios_base::out|ios_base::app, false, true);
+        // ete_info = simout.open("ete_info.log",ios_base::out|ios_base::app, false, true);
 
         // write here because we need the total number of application before
         //configure nodes
@@ -221,6 +227,7 @@ GarnetNetwork::init()
 
         for (int i=0;i<m_nodes/2;i++){
             m_nis[i]->initializeTaskIdList();
+            // m_nis[i]->initializeTaskBuffer();
         }
 
         ETE_delay.resize(m_num_application);
@@ -594,6 +601,25 @@ GarnetNetwork::functionalWrite(Packet *pkt)
     return num_functional_writes;
 }
 
+// 
+// int *
+// GarnetNetwork::get_ratio_token(int *iterations){
+//     int *ratiolist = new int[m_num_application];
+    
+//     for(int i = 0; i < m_num_application; i++){
+//         ratiolist[i] = iterations[i];
+//     }
+//     int gcd_of_all = ratiolist[0];
+//     sort(ratiolist, ratiolist + m_num_application, greater<int>());
+//     for(int i = 0; i < m_num_application; i++){
+//         gcd_of_all = gcd(gcd_of_all, ratiolist[i]);
+//     }
+//     for(int i = 0; i < m_num_application; i++){
+//         ratiolist[i] = iterations[i]/gcd_of_all;
+//     }
+//     return ratiolist;
+// }
+
 bool
 GarnetNetwork::readApplicationConfig(std::string filename){
 
@@ -616,6 +642,15 @@ GarnetNetwork::readApplicationConfig(std::string filename){
         fscanf(fp, "%d", &m_applicaton_execution_iterations[i]);
     }
     fclose(fp);
+
+    // //calculate ratio token for apps
+    // int *ratiolist = get_ratio_token(m_applicaton_execution_iterations);
+    // for (int i=0;i<m_nodes/2;i++){
+    //     m_nis[i]->initializeFixedRatioToken(ratiolist);
+    // }
+    // for(int i = 0; i < m_num_application; i++){
+    //     cout << ratiolist[i] << endl;
+    // }
 
     return true;
 }
@@ -733,7 +768,7 @@ GarnetNetwork::loadTraffic(std::string filename){
                 //Note Here! We just consider the size of the out memory for the source task
                 //e.set_out_memory(v[5],v[6]);
                 //e.set_out_memory(v[5],10);
-                e.set_out_memory(v[5],50);
+                e.set_out_memory(v[5],m_out_mem_size);
 
                 // if (v[6]==-1)
                 //     e.set_out_memory(v[5],INT_MAX);
@@ -741,7 +776,7 @@ GarnetNetwork::loadTraffic(std::string filename){
                 //     e.set_out_memory(v[5],v[6]);
 
                 //e.set_in_memory(v[7],v[8]);
-                e.set_in_memory(v[7],50);
+                e.set_in_memory(v[7],m_in_mem_size);
 
 
                 e.set_statistical_token_size(d[0], d[1]);
@@ -914,6 +949,9 @@ GarnetNetwork::wakeup(){
             simout.close(task_start_time_vs_id_iters);
             simout.close(throughput_info);
             simout.close(app_delay_running_info);
+            // simout.close(start_time_info);
+            // simout.close(end_time_info);
+            // simout.close(ete_info);
             simout.close(network_performance_info);
             simout.close(task_waiting_time_info);
 
@@ -1047,6 +1085,14 @@ GarnetNetwork::constructArchitecture(std::string filename){
                     vc_allocation_object_position.push_back(node_id);
                 }
             }
+            //record PE-7 position for initial task judgement in NI
+            std::string::size_type idx;
+            if(string::npos != core_name[j].find("PE-7")){
+                entrance_NI = node_id;
+                entrance_core = core_id[j];
+                entrance_idx_in_NI = j;
+            }
+            idx=core_name[j].find(m_vc_allocation_object);
 
             m_core_id_node_id.insert(make_pair(core_id[j], node_id));
 
@@ -1284,8 +1330,12 @@ GarnetNetwork::output_ete_delay(int app_idx, int ex_iters)
     *(app_delay_running_info->stream())<<m_application_name[app_idx]<<"\t"<<ex_iters<<"\t"<<task_start_time[app_idx][ex_iters]<<\
         "\t"<<task_end_time[app_idx][ex_iters]<<"\t"<<ETE_delay[app_idx][ex_iters]<<endl;
 
-    *(network_performance_info->stream())<<ex_iters<<"\t"<<m_avg_flit_latency.total()<<"\t"<<m_avg_flit_network_latency.total()<<\
+    *(network_performance_info->stream())<<m_application_name[app_idx]<<"\t"<<ex_iters<<"\t"<<m_avg_flit_latency.total()<<"\t"<<m_avg_flit_network_latency.total()<<\
         "\t"<<m_avg_flit_queueing_latency.total()<<"\t"<<m_flits_received.total()<<"\t"<<m_avg_hops.total()<<endl;
+    
+    // *(start_time_info->stream())<<task_start_time[app_idx][ex_iters]<<endl;
+    // *(end_time_info->stream())<<task_end_time[app_idx][ex_iters]<<endl;
+    // *(ete_info->stream())<<ETE_delay[app_idx][ex_iters]<<endl;
 }
 
 bool
@@ -1308,6 +1358,7 @@ GarnetNetwork::update_in_memory_info(int core_id, int app_idx, int src_task_id, 
     int node_id = getNodeIdbyCoreId(core_id);
     GraphTask &src_task = m_nis[node_id]->get_task_by_task_id(core_id, app_idx, src_task_id);
     GraphEdge &out_edge = src_task.get_outgoing_edge_by_eid(edge_id);
+    // std::cout << "update_in_memory_info\t" << core_id << "\t" << src_task_id << "\t" << out_edge.get_in_memory_remained() << std::endl;
 
     assert(out_edge.update_in_memory_read_pointer());
 }

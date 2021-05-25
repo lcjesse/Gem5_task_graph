@@ -30,10 +30,10 @@ GraphEdge::record_pkt(flit* fl, int time)
         //However, it only applys when this is an inter-core pkt. Otherwise,
         //the memory is reserved already --in fact, data is located at the
         //same place
-                if (src_proc_id != dst_proc_id)
-                {
+                // if (src_proc_id != dst_proc_id)
+                // {
                         assert(update_in_memory_write_pointer());
-                }
+                // }
                 token_info_type temp;
                 temp.id = fl->get_tg_info().token_id;
                 temp.length_in_pkt = fl->get_tg_info().token_length_in_pkt;
@@ -85,10 +85,12 @@ GraphEdge::record_sent_pkt(flit* fl)
         //we should check the buffer state of dest
                 if (in_memory_remained <= 0)
                 //if (0)
-                {
+                {       
+                        // std::cout << src_task_id << "\t" << dst_task_id << "\t" << src_proc_id << "\t" << dst_proc_id << std::endl;
                         return false;
                 } else { //it consumes/resevers memory immediately, and need update when dst receive the pkt
-                        assert(update_in_memory_write_pointer());
+                        // std::cout << src_task_id << "\t" << dst_task_id << "\t" << src_proc_id << "\t" << dst_proc_id << std::endl;
+                        assert(update_in_memory_write_pointer());                                           //should update when received, not now
                         token_info_type temp;
                         temp.id = fl->get_tg_info().token_id;
                         temp.length_in_pkt = fl->get_tg_info().\

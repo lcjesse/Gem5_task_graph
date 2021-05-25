@@ -94,6 +94,10 @@ def define_options(parser):
     parser.add_option("--vc-allocation-object", type="string", default=" ",
                       help="""Ring network can allocate certain numbers of 
                             vcs(vcs-for-allocation) for these objects.""")
+    parser.add_option("--in-mem-size", type="int", default=1,
+                      help="in memory size of every edge")
+    parser.add_option("--out-mem-size", type="int", default=1,
+                      help="out memory size of every edge")
 
 
 def create_network(options, ruby):
@@ -136,6 +140,8 @@ def init_network(options, network, InterfaceClass):
         network.architecture_file = options.architecture_file
         network.print_task_execution_info = options.print_task_execution_info
         network.vc_allocation_object = options.vc_allocation_object
+        network.in_mem_size = options.in_mem_size
+        network.out_mem_size = options.out_mem_size
 
     if options.network == "simple":
         network.setup_buffers()

@@ -60,6 +60,8 @@ class GarnetNetwork(RubyNetwork):
         (assigned by vc-allocation-object) per virtual network""");
     vc_allocation_object = Param.String(" ", """Ring network can allocate 
         certain numbers of vcs(vcs-for-allocation) for these objects.""");
+    in_mem_size = Param.Int(10, "in memory size of every edge");
+    out_mem_size = Param.Int(10, "out memory size of every edge");
 
 
 class GarnetNetworkInterface(ClockedObject):

@@ -138,12 +138,14 @@ OutputUnit::has_free_vc(int vnet, int vc_choice)
             case 0:
             // special low
                 vc_start = 0;
-                vc_end = m_vcs_for_allocation / 2;
+                vc_end = m_vc_per_vnet / 2;
+                // vc_end = m_vcs_for_allocation / 2;
                 break;
             case 1:
             // special high
-                vc_start = m_vcs_for_allocation / 2;
-                vc_end = m_vcs_for_allocation;
+                // vc_start = m_vcs_for_allocation / 2;
+                vc_start = m_vc_per_vnet / 2;
+                vc_end = m_vc_per_vnet;
                 break;
             case 2:
             // normal low
@@ -204,12 +206,14 @@ OutputUnit::select_free_vc(int vnet, int vc_choice)
             case 0:
             // special low
                 vc_start = 0;
-                vc_end = m_vcs_for_allocation / 2;
+                // vc_end = m_vcs_for_allocation / 2;
+                vc_end = m_vc_per_vnet / 2;
                 break;
             case 1:
             // special high
-                vc_start = m_vcs_for_allocation / 2;
-                vc_end = m_vcs_for_allocation;
+                // vc_start = m_vcs_for_allocation / 2;
+                vc_start = m_vc_per_vnet / 2;
+                vc_end = m_vc_per_vnet;
                 break;
             case 2:
             // normal low

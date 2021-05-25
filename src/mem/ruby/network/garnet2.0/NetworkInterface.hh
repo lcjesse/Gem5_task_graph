@@ -101,6 +101,22 @@ class NetworkInterface : public ClockedObject, public Consumer
     void printNodeConfiguation();
     int lookUpMap(std::map<int, int> m, int idx);
 
+    // // when token is all consumed, reset to fixed value
+    // void reset_initial_app_ratio_token(){
+    //   for(int i = 0; i < m_num_apps; i++){
+    //     initial_app_ratio_token[i] = fixed_initial_app_ratio_token[i];
+    //   }
+    // }
+    // void reset_initial_app_ratio_token(){
+    //   for(int i = 0; i < m_num_apps; i++){
+    //     if(i==0){
+    //       initial_app_ratio_token[i] = 1;
+    //     }else{
+    //       initial_app_ratio_token[i] = 5;
+    //     }
+    //   }
+    // }
+
     //for throughput
     double get_throughput(int core_id){
       int core_idx = lookUpMap(m_core_id_index, core_id);
@@ -116,6 +132,14 @@ class NetworkInterface : public ClockedObject, public Consumer
 
     std::vector<int> core_buffer_sent;
     void initializeTaskIdList();
+    // void initializeTaskBuffer();
+
+    // // read Application Config file to initialize fixed_initial_app_ratio_token
+    // void initializeFixedRatioToken(int *ratiolist){
+    //   for(int i = 0; i < m_num_apps; i++){
+    //     fixed_initial_app_ratio_token[i] = ratiolist[i];
+    //   }
+    // }
 
     int get_num_tokens(){
       if (m_id == 8){
@@ -171,6 +195,7 @@ class NetworkInterface : public ClockedObject, public Consumer
     void sendCredit(flit *t_flit, bool is_free);
 
     void incrementStats(flit *t_flit);
+    void incrementStats(flit *t_flit, bool in_core);
 
     //for task graph traffic
     //task_list in each core
@@ -192,6 +217,13 @@ class NetworkInterface : public ClockedObject, public Consumer
     int* initial_task_thread_queue;
     int* remainad_initial_task_exec_time;
     bool* initial_task_busy_flag;
+    int* app_idx_in_initial_thread_queue;
+    // int* initial_app_ratio_token; //token for init task in different apps to reach certain ratio
+    // int* fixed_initial_app_ratio_token;
+    //record PE-7 position for initial task judgement in NI
+    int entrance_NI;
+    int entrance_core;
+    int entrance_idx_in_NI;
 
     //for construct architecture in tg mode
     int m_num_cores;
@@ -213,6 +245,7 @@ class NetworkInterface : public ClockedObject, public Consumer
     std::vector<std::vector<flit* > > crossbar_data;
     int core_buffer_round_robin;
     const int crossbar_delay = 2;
+
 
     //for back pressure when core receive the flit
     std::vector<std::vector<flit* > > input_buffer; //core_num * buffer_size

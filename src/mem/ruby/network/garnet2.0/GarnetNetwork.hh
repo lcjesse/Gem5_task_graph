@@ -113,6 +113,10 @@ class GarnetNetwork : public Network, public Consumer
     }
     int getNumRouters();
     int get_router_id(int ni);
+    //record PE-7 position for initial task judgement in NI
+    int get_entrance_NI(){ return entrance_NI; }
+    int get_entrance_core(){ return entrance_core; }
+    int get_entrance_idx_in_NI(){ return entrance_idx_in_NI; }
 
 
     // Methods used by Topology to setup the network
@@ -218,6 +222,9 @@ class GarnetNetwork : public Network, public Consumer
     //for the ete delay
     OutputStream *throughput_info;
     OutputStream *app_delay_running_info;
+    // OutputStream *start_time_info;
+    // OutputStream *end_time_info;
+    // OutputStream *ete_info;
 
     OutputStream *network_performance_info;
     //for the task waiting time
@@ -226,6 +233,12 @@ class GarnetNetwork : public Network, public Consumer
     bool back_pressure(int m_id);
     // update the in memory remianed information for the src task in src core when record pkt
     void update_in_memory_info(int core_id, int app_idx, int src_task_id, int edge_id);
+
+    // find greatest common divisor, for ratio token in NI
+    int gcd(int a, int b){
+        return b ? gcd(b,a%b):a;
+    }
+    // int *get_ratio_token(int *iterations);
 
   protected:
     // Configuration
@@ -270,6 +283,10 @@ class GarnetNetwork : public Network, public Consumer
     int** src_dst_latency;
     //for vc to check vc_allocation_object position
     std::vector<int> vc_allocation_object_position;
+    //record PE-7 position for initial task judgement in NI
+    int entrance_NI;
+    int entrance_core;
+    int entrance_idx_in_NI;
 
     // Statistical variables
     Stats::Vector m_packets_received;
@@ -305,6 +322,9 @@ class GarnetNetwork : public Network, public Consumer
 
     //add for TG
     Stats::Scalar m_total_task_execution_time;
+
+    int m_in_mem_size;
+    int m_out_mem_size;
 
   private:
     GarnetNetwork(const GarnetNetwork& obj);
