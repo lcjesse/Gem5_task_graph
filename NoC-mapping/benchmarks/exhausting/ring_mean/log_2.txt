@@ -1,0 +1,8 @@
+best mean till  66  iters is:  74.10247933884298 corresponding nodes is:  [0, 1, 5, 10, 6, 11, 2, 3, 8, 7, 9, 4]
+best mean till  132  iters is:  43.615206611570265 corresponding nodes is:  [0, 9, 5, 10, 6, 11, 8, 3, 2, 7, 1, 4]
+best mean till  198  iters is:  35.08892561983472 corresponding nodes is:  [0, 3, 6, 10, 5, 11, 8, 9, 2, 7, 1, 4]
+best mean till  264  iters is:  34.61289256198348 corresponding nodes is:  [2, 3, 8, 10, 5, 11, 6, 9, 0, 7, 1, 4]
+best mean till  330  iters is:  33.666115702479345 corresponding nodes is:  [2, 3, 9, 11, 5, 10, 6, 8, 0, 7, 1, 4]
+best mean till  792  iters is:  30.841652892561992 corresponding nodes is:  [2, 8, 9, 11, 5, 10, 6, 0, 1, 7, 4, 3]
+best mean till  858  iters is:  29.826115702479346 corresponding nodes is:  [0, 8, 9, 11, 5, 10, 6, 2, 1, 7, 4, 3]
+best mean in the process is:  29.826115702479346 corresponding nodes is:  [0, 8, 9, 11, 5, 10, 6, 2, 1, 7, 4, 3]

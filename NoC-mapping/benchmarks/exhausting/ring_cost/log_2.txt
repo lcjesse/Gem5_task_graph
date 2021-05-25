@@ -1,0 +1,8 @@
+best cost till  66  iters is:  1220.1600000000005 corresponding nodes is:  [0, 11, 5, 10, 6, 7, 2, 3, 8, 1, 9, 4]
+best cost till  132  iters is:  1208.3840000000002 corresponding nodes is:  [0, 9, 5, 10, 6, 11, 2, 3, 8, 1, 7, 4]
+best cost till  198  iters is:  1060.8000000000004 corresponding nodes is:  [0, 3, 5, 10, 6, 11, 8, 9, 2, 1, 7, 4]
+best cost till  264  iters is:  1025.3440000000005 corresponding nodes is:  [0, 3, 8, 10, 5, 11, 6, 9, 2, 1, 7, 4]
+best cost till  330  iters is:  954.3040000000004 corresponding nodes is:  [0, 9, 8, 11, 5, 10, 6, 3, 2, 1, 7, 4]
+best cost till  792  iters is:  933.6320000000004 corresponding nodes is:  [0, 8, 9, 11, 5, 10, 6, 2, 7, 1, 4, 3]
+best cost till  968154  iters is:  933.6320000000003 corresponding nodes is:  [6, 10, 5, 11, 9, 8, 0, 3, 1, 2, 4, 7]
+best cost in the process is:  933.6320000000003 corresponding nodes is:  [6, 10, 5, 11, 9, 8, 0, 3, 1, 2, 4, 7]
