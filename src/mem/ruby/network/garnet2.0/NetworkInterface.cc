@@ -96,12 +96,12 @@ NetworkInterface::init()
         initial_task_busy_flag = new bool[num_initial_thread];
         remainad_initial_task_exec_time = new int[num_initial_thread];
         app_idx_in_initial_thread_queue = new int[num_initial_thread];
-        // initial_app_ratio_token = new int[m_num_apps];
-        // fixed_initial_app_ratio_token = new int[m_num_apps];
-        // for (int i=0; i<m_num_apps;i++){
-        //     initial_app_ratio_token[i] = 0;
-        //     fixed_initial_app_ratio_token[i] = 1;
-        // }
+        initial_app_ratio_token = new int[m_num_apps];
+        fixed_initial_app_ratio_token = new int[m_num_apps];
+        for (int i=0; i<m_num_apps;i++){
+            initial_app_ratio_token[i] = 0;
+            fixed_initial_app_ratio_token[i] = 1;
+        }
         for (int i=0;i<num_initial_thread;i++){
             initial_task_thread_queue[i] = -1;
             initial_task_busy_flag[i] = false;
@@ -140,7 +140,6 @@ NetworkInterface::~NetworkInterface()
         delete [] initial_task_busy_flag;
         delete [] remainad_initial_task_exec_time;
         // delete [] initial_app_ratio_token;
-        // delete [] fixed_initial_app_ratio_token;
         delete [] app_idx_in_initial_thread_queue;
     }
 }
@@ -1188,100 +1187,103 @@ NetworkInterface::enqueueTaskInThreadQueue()
 
     if (m_id==entrance_NI){
         //if all token are 0; reset them
-        // int pp;
-        // for (pp = 0; pp < m_num_apps; pp++){
-        //     if(initial_app_ratio_token[pp] > 0){
-        //         break;
-        //     }
-        // }
-        // if(pp == m_num_apps){
-        //     reset_initial_app_ratio_token();
-        // }
-
-        // for (int kk=0; kk<m_num_apps;kk++){
-        //     int app_idx = (kk+app_exec_rr[entrance_idx_in_NI]) % m_num_apps;
-        //     if(initial_app_ratio_token[app_idx] <= 0){
-        //         continue;
-        //     }
-        GraphTask &c_task = task_list[entrance_idx_in_NI][app_idx][0];
-        assert(c_task.get_id()==0);
-
-        int not_busy_idx;
-        for (not_busy_idx = 0; not_busy_idx < num_initial_thread; not_busy_idx++)
-        {
-            if (!initial_task_busy_flag[not_busy_idx])
+        int pp;
+        for (pp = 0; pp < m_num_apps; pp++){
+            if(initial_app_ratio_token[pp] > 0){
                 break;
+            }
+        }
+        if(pp == m_num_apps){
+            reset_initial_app_ratio_token();
         }
 
-        if (not_busy_idx == num_initial_thread || m_net_ptr->back_pressure(entrance_NI)){
-            break;
-        } else {
-            GraphTask &c_task = task_list[entrance_idx_in_NI][app_idx][0];
-            assert(c_task.get_id()==0);
-            //check the out_edge out_memory
-            int jj;
-            for (jj = 0; jj < c_task.get_size_of_outgoing_edge_list(); jj++)
-            {
-                GraphEdge &temp_edge = c_task.get_outgoing_edge_by_offset(jj);
-                if (temp_edge.get_out_memory_remained() <= 0)
-                {
-                    // printf("core %d [ %s ] task %d out buffer full !\n", 12, m_core_id_name[12].c_str(), c_task.get_id());
-                    break;
-                }
-                // printf("out memory of task [%3d] remained: [%3d], in memory remained: [%3d]\t", c_task.get_id(), temp_edge.get_out_memory_remained(), temp_edge.get_in_memory_remained());
-            }
-            if (jj < c_task.get_size_of_outgoing_edge_list()){
+        for (int kk=0; kk<m_num_apps;kk++){
+            int app_idx = (kk+app_exec_rr[entrance_idx_in_NI]) % m_num_apps;
+            if(initial_app_ratio_token[app_idx] <= 0){
                 continue;
+            }
+        // GraphTask &c_task = task_list[entrance_idx_in_NI][app_idx][0];
+        // assert(c_task.get_id()==0);
+
+            int not_busy_idx;
+            for (not_busy_idx = 0; not_busy_idx < num_initial_thread; not_busy_idx++)
+            {
+                if (!initial_task_busy_flag[not_busy_idx])
+                    break;
+            }
+
+            if (not_busy_idx == num_initial_thread || m_net_ptr->back_pressure(entrance_NI)){
+                break;
             } else {
-                assert(c_task.get_size_of_incoming_edge_list() == 0);
-                // initial_app_ratio_token[app_idx]--; //consume token to reach certain ratio
-                c_task.add_c_e_times();
-                initial_task_thread_queue[not_busy_idx] = c_task.get_id();
-                initial_task_busy_flag[not_busy_idx] = true;
-                app_idx_in_initial_thread_queue[not_busy_idx] = app_idx;
-                // cout << m_id << "\t" << c_task.get_proc_id() << "\t" << c_task.get_id() << "\t" << curCycle() << endl;//////////////////////////////////////////////
-                int execution_time = c_task.get_random_execution_time();
-                remainad_initial_task_exec_time[not_busy_idx] = execution_time;
-                c_task.record_execution_time(curCycle(), curCycle()+execution_time);
-
-                if (c_task.get_c_e_times()<=c_task.get_required_times()){
-                    m_net_ptr->update_start_end_time(app_idx, c_task.get_c_e_times()-1, curCycle(), curCycle()+execution_time);
-                    // if(c_task.get_c_e_times()==1){
-                        // for (int qq=0;qq<c_task.get_size_of_outgoing_edge_list();qq++){
-                        //     GraphEdge &temp_edge = c_task.get_outgoing_edge_by_offset(qq);
-                        //     printf("out memory of task [%3d] remained: [%3d], in memory remained: [%3d]\t", c_task.get_id(), temp_edge.get_out_memory_remained(), temp_edge.get_in_memory_remained());
-                        // }
-                        // printf("Iteration %3d:\tNI [%3d]\tCore\t[%3d]\ttask [%3d]\tcurrent cycle [%3d]\n", c_task.get_c_e_times(), m_id, 12, c_task.get_id(), int(curCycle()));
-                    // }
-
+                GraphTask &c_task = task_list[entrance_idx_in_NI][app_idx][0];
+                assert(c_task.get_id()==0);
+                //check the out_edge out_memory
+                int jj;
+                for (jj = 0; jj < c_task.get_size_of_outgoing_edge_list(); jj++)
+                {
+                    GraphEdge &temp_edge = c_task.get_outgoing_edge_by_offset(jj);
+                    if (temp_edge.get_out_memory_remained() <= 0)
+                    {
+                        // printf("core %d [ %s ] task %d out buffer full !\n", 12, m_core_id_name[12].c_str(), c_task.get_id());
+                        break;
+                    }
+                    // printf("out memory of task [%3d] remained: [%3d], in memory remained: [%3d]\t", c_task.get_id(), temp_edge.get_out_memory_remained(), temp_edge.get_in_memory_remained());
                 }
+                if (jj < c_task.get_size_of_outgoing_edge_list()){
+                    continue;
+                } else {
+                    assert(c_task.get_size_of_incoming_edge_list() == 0);
+                    initial_app_ratio_token[app_idx]--; //consume token to reach certain ratio
+                    c_task.add_c_e_times();
+                    initial_task_thread_queue[not_busy_idx] = c_task.get_id();
+                    initial_task_busy_flag[not_busy_idx] = true;
+                    app_idx_in_initial_thread_queue[not_busy_idx] = app_idx;
+                    // cout << m_id << "\t" << c_task.get_proc_id() << "\t" << c_task.get_id() << "\t" << curCycle() << endl;//////////////////////////////////////////////
+                    int execution_time = c_task.get_random_execution_time();
+                    remainad_initial_task_exec_time[not_busy_idx] = execution_time;
+                    c_task.record_execution_time(curCycle(), curCycle()+execution_time);
+
+                    if (c_task.get_c_e_times()<=c_task.get_required_times()){
+                        m_net_ptr->update_start_end_time(app_idx, c_task.get_c_e_times()-1, curCycle(), curCycle()+execution_time);
+                        // if(c_task.get_c_e_times()==1){
+                            // for (int qq=0;qq<c_task.get_size_of_outgoing_edge_list();qq++){
+                            //     GraphEdge &temp_edge = c_task.get_outgoing_edge_by_offset(qq);
+                            //     printf("out memory of task [%3d] remained: [%3d], in memory remained: [%3d]\t", c_task.get_id(), temp_edge.get_out_memory_remained(), temp_edge.get_in_memory_remained());
+                            // }
+                            // printf("Iteration %3d:\tNI [%3d]\tCore\t[%3d]\ttask [%3d]\tcurrent cycle [%3d]\n", c_task.get_c_e_times(), m_id, 12, c_task.get_id(), int(curCycle()));
+                        // }
+
+                    }
                         
 
-                c_task.set_all_tokens_received_time(0);
+                    c_task.set_all_tokens_received_time(0);
 
-                for (int k=0;k<c_task.get_size_of_outgoing_edge_list();k++){
+                    for (int k=0;k<c_task.get_size_of_outgoing_edge_list();k++){
 
-                    GraphEdge &temp_edge = c_task.get_outgoing_edge_by_offset(k);
-                    assert(temp_edge.update_out_memory_write_pointer());
-                    int dest_proc_id = temp_edge.get_dst_proc_id();
-                    if (dest_proc_id == c_task.get_proc_id()){
-                        assert(dest_proc_id == entrance_core);
-                        // int dest_task_id = temp_edge.get_dst_task_id();
-                        // int edge_id = temp_edge.get_id();
-                        // GraphTask &dst_task = get_task_by_task_id(dest_proc_id, 0, dest_task_id);
-                        // GraphEdge &in_edge = dst_task.get_incoming_edge_by_eid(edge_id);
-                        // assert(in_edge.update_in_memory_write_pointer());
-                        // cout << "NI: " << m_id << "    core: " << dest_proc_id << "    two task in same core\n";
+                        GraphEdge &temp_edge = c_task.get_outgoing_edge_by_offset(k);
+                        assert(temp_edge.update_out_memory_write_pointer());
+                        int dest_proc_id = temp_edge.get_dst_proc_id();
+                        if (dest_proc_id == c_task.get_proc_id()){
+                            assert(dest_proc_id == entrance_core);
+                            // int dest_task_id = temp_edge.get_dst_task_id();
+                            // int edge_id = temp_edge.get_id();
+                            // GraphTask &dst_task = get_task_by_task_id(dest_proc_id, 0, dest_task_id);
+                            // GraphEdge &in_edge = dst_task.get_incoming_edge_by_eid(edge_id);
+                            // assert(in_edge.update_in_memory_write_pointer());
+                            // cout << "NI: " << m_id << "    core: " << dest_proc_id << "    two task in same core\n";
+                        }
+                        double token_size = temp_edge.get_random_token_size();
+                        int num_flits = ceil(token_size / (m_net_ptr->getNiFlitSize() * 8));
+
+                        enqueueFlitsGeneratorBuffer(temp_edge, num_flits, execution_time);
+                        temp_edge.generate_new_token();
                     }
-                    double token_size = temp_edge.get_random_token_size();
-                    int num_flits = ceil(token_size / (m_net_ptr->getNiFlitSize() * 8));
-
-                    enqueueFlitsGeneratorBuffer(temp_edge, num_flits, execution_time);
-                    temp_edge.generate_new_token();
                 }
             }
         }
+        app_exec_rr[entrance_idx_in_NI] = (app_exec_rr[entrance_idx_in_NI] + 1) % m_num_apps;
     }
+
 }
 
 void
@@ -1654,7 +1656,7 @@ NetworkInterface::intraClusterOut()
 
         // int p, least_c_e_times = 99999, pick = 0, defu_app_idx;
         // if core_buffer do not have flit of this app, check next app. if have flit of this app, choose one with least c_e_times.
-        // srand((int)time(NULL));
+        srand((int)time(NULL));
         // for (int kk=0; kk<m_num_apps && least_c_e_times == 99999;kk++){
             
             // defu_app_idx = (kk+app_exec_rr[i]) % m_num_apps;
@@ -1772,7 +1774,7 @@ NetworkInterface::interClusterOut()
         //////////////////////////////////////////////////////////////////////
         // int p, least_c_e_times = 99999, pick = 0, defu_app_idx;
         //if cluster_buffer do not have flit of this app, check next app. if have flit of this app, choose one with least c_e_times.
-        // srand((int)time(NULL));
+        srand((int)time(NULL));
         // for (int kk=0; kk<m_num_apps && least_c_e_times == 99999;kk++){
         //     defu_app_idx = (kk+app_exec_rr[i]) % m_num_apps;
         // while(least_c_e_times == 99999){

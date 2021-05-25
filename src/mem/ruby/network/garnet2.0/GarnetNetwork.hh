@@ -238,7 +238,7 @@ class GarnetNetwork : public Network, public Consumer
     int gcd(int a, int b){
         return b ? gcd(b,a%b):a;
     }
-    // int *get_ratio_token(int *iterations);
+    int *get_ratio_token(int *iterations);
 
   protected:
     // Configuration

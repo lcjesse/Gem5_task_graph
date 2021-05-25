@@ -602,23 +602,23 @@ GarnetNetwork::functionalWrite(Packet *pkt)
 }
 
 // 
-// int *
-// GarnetNetwork::get_ratio_token(int *iterations){
-//     int *ratiolist = new int[m_num_application];
+int *
+GarnetNetwork::get_ratio_token(int *iterations){
+    int *ratiolist = new int[m_num_application];
     
-//     for(int i = 0; i < m_num_application; i++){
-//         ratiolist[i] = iterations[i];
-//     }
-//     int gcd_of_all = ratiolist[0];
-//     sort(ratiolist, ratiolist + m_num_application, greater<int>());
-//     for(int i = 0; i < m_num_application; i++){
-//         gcd_of_all = gcd(gcd_of_all, ratiolist[i]);
-//     }
-//     for(int i = 0; i < m_num_application; i++){
-//         ratiolist[i] = iterations[i]/gcd_of_all;
-//     }
-//     return ratiolist;
-// }
+    for(int i = 0; i < m_num_application; i++){
+        ratiolist[i] = iterations[i];
+    }
+    int gcd_of_all = ratiolist[0];
+    sort(ratiolist, ratiolist + m_num_application, greater<int>());
+    for(int i = 0; i < m_num_application; i++){
+        gcd_of_all = gcd(gcd_of_all, ratiolist[i]);
+    }
+    for(int i = 0; i < m_num_application; i++){
+        ratiolist[i] = iterations[i]/gcd_of_all;
+    }
+    return ratiolist;
+}
 
 bool
 GarnetNetwork::readApplicationConfig(std::string filename){
@@ -643,14 +643,14 @@ GarnetNetwork::readApplicationConfig(std::string filename){
     }
     fclose(fp);
 
-    // //calculate ratio token for apps
-    // int *ratiolist = get_ratio_token(m_applicaton_execution_iterations);
-    // for (int i=0;i<m_nodes/2;i++){
-    //     m_nis[i]->initializeFixedRatioToken(ratiolist);
-    // }
-    // for(int i = 0; i < m_num_application; i++){
-    //     cout << ratiolist[i] << endl;
-    // }
+    //calculate ratio token for apps
+    int *ratiolist = get_ratio_token(m_applicaton_execution_iterations);
+    for (int i=0;i<m_nodes/2;i++){
+        m_nis[i]->initializeFixedRatioToken(ratiolist);
+    }
+    for(int i = 0; i < m_num_application; i++){
+        cout << ratiolist[i] << endl;
+    }
 
     return true;
 }

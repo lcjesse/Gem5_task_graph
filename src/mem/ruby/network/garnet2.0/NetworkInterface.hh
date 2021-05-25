@@ -101,12 +101,12 @@ class NetworkInterface : public ClockedObject, public Consumer
     void printNodeConfiguation();
     int lookUpMap(std::map<int, int> m, int idx);
 
-    // // when token is all consumed, reset to fixed value
-    // void reset_initial_app_ratio_token(){
-    //   for(int i = 0; i < m_num_apps; i++){
-    //     initial_app_ratio_token[i] = fixed_initial_app_ratio_token[i];
-    //   }
-    // }
+    // when token is all consumed, reset to fixed value
+    void reset_initial_app_ratio_token(){
+      for(int i = 0; i < m_num_apps; i++){
+        initial_app_ratio_token[i] = fixed_initial_app_ratio_token[i];
+      }
+    }
     // void reset_initial_app_ratio_token(){
     //   for(int i = 0; i < m_num_apps; i++){
     //     if(i==0){
@@ -134,12 +134,12 @@ class NetworkInterface : public ClockedObject, public Consumer
     void initializeTaskIdList();
     // void initializeTaskBuffer();
 
-    // // read Application Config file to initialize fixed_initial_app_ratio_token
-    // void initializeFixedRatioToken(int *ratiolist){
-    //   for(int i = 0; i < m_num_apps; i++){
-    //     fixed_initial_app_ratio_token[i] = ratiolist[i];
-    //   }
-    // }
+    // read Application Config file to initialize fixed_initial_app_ratio_token
+    void initializeFixedRatioToken(int *ratiolist){
+      for(int i = 0; i < m_num_apps; i++){
+        fixed_initial_app_ratio_token[i] = ratiolist[i];
+      }
+    }
 
     int get_num_tokens(){
       if (m_id == 8){
@@ -218,8 +218,8 @@ class NetworkInterface : public ClockedObject, public Consumer
     int* remainad_initial_task_exec_time;
     bool* initial_task_busy_flag;
     int* app_idx_in_initial_thread_queue;
-    // int* initial_app_ratio_token; //token for init task in different apps to reach certain ratio
-    // int* fixed_initial_app_ratio_token;
+    int* initial_app_ratio_token; //token for init task in different apps to reach certain ratio
+    int* fixed_initial_app_ratio_token;
     //record PE-7 position for initial task judgement in NI
     int entrance_NI;
     int entrance_core;
