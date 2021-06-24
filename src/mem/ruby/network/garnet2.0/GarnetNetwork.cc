@@ -602,15 +602,17 @@ GarnetNetwork::functionalWrite(Packet *pkt)
 }
 
 // 
-int *
+vector<int> 
 GarnetNetwork::get_ratio_token(int *iterations){
-    int *ratiolist = new int[m_num_application];
-    
+    // int *ratiolist = new int[m_num_application];
+    vector<int> ratiolist;
     for(int i = 0; i < m_num_application; i++){
-        ratiolist[i] = iterations[i];
+        // ratiolist[i] = iterations[i];
+        ratiolist.push_back(iterations[i]);
     }
     int gcd_of_all = ratiolist[0];
-    sort(ratiolist, ratiolist + m_num_application, greater<int>());
+    // sort(ratiolist, ratiolist + m_num_application, greater<int>());
+    sort(ratiolist.begin(), ratiolist.end());
     for(int i = 0; i < m_num_application; i++){
         gcd_of_all = gcd(gcd_of_all, ratiolist[i]);
     }
@@ -632,7 +634,7 @@ GarnetNetwork::readApplicationConfig(std::string filename){
     //read the first line of all application information
     fscanf(fp, "%d", &m_num_application);
     fscanf(fp, "%d", &m_total_execution_iterations);
-    //read the filename and excution iterations of all application
+    // read the filename and excution iterations of all application
     m_application_name = new string[m_num_application];
     m_applicaton_execution_iterations = new int[m_num_application];
     for (int i=0;i<m_num_application;i++){
@@ -644,14 +646,10 @@ GarnetNetwork::readApplicationConfig(std::string filename){
     fclose(fp);
 
     //calculate ratio token for apps
-    int *ratiolist = get_ratio_token(m_applicaton_execution_iterations);
+    vector<int> ratiolist = get_ratio_token(m_applicaton_execution_iterations);
     for (int i=0;i<m_nodes/2;i++){
         m_nis[i]->initializeFixedRatioToken(ratiolist);
     }
-    for(int i = 0; i < m_num_application; i++){
-        cout << ratiolist[i] << endl;
-    }
-
     return true;
 }
 
@@ -1358,7 +1356,6 @@ GarnetNetwork::update_in_memory_info(int core_id, int app_idx, int src_task_id, 
     int node_id = getNodeIdbyCoreId(core_id);
     GraphTask &src_task = m_nis[node_id]->get_task_by_task_id(core_id, app_idx, src_task_id);
     GraphEdge &out_edge = src_task.get_outgoing_edge_by_eid(edge_id);
-    // std::cout << "update_in_memory_info\t" << core_id << "\t" << src_task_id << "\t" << out_edge.get_in_memory_remained() << std::endl;
 
     assert(out_edge.update_in_memory_read_pointer());
 }

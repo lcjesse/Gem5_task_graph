@@ -107,15 +107,6 @@ class NetworkInterface : public ClockedObject, public Consumer
         initial_app_ratio_token[i] = fixed_initial_app_ratio_token[i];
       }
     }
-    // void reset_initial_app_ratio_token(){
-    //   for(int i = 0; i < m_num_apps; i++){
-    //     if(i==0){
-    //       initial_app_ratio_token[i] = 1;
-    //     }else{
-    //       initial_app_ratio_token[i] = 5;
-    //     }
-    //   }
-    // }
 
     //for throughput
     double get_throughput(int core_id){
@@ -135,21 +126,11 @@ class NetworkInterface : public ClockedObject, public Consumer
     // void initializeTaskBuffer();
 
     // read Application Config file to initialize fixed_initial_app_ratio_token
-    void initializeFixedRatioToken(int *ratiolist){
-      for(int i = 0; i < m_num_apps; i++){
-        fixed_initial_app_ratio_token[i] = ratiolist[i];
+    void initializeFixedRatioToken(std::vector<int> ratiolist){
+      for(int i = 0; i < ratiolist.size(); i++){
+        fixed_initial_app_ratio_token.push_back(ratiolist[i]);
+        initial_app_ratio_token.push_back(ratiolist[i]);
       }
-    }
-
-    int get_num_tokens(){
-      if (m_id == 8){
-        GraphTask &c_task = get_task_by_task_id(11, 0, 1);
-        GraphEdge &e = c_task.get_incoming_edge_by_eid(0);
-        return e.get_num_incoming_token();
-      } else {
-        return -2;
-      }
-    }
 
   private:
     GarnetNetwork *m_net_ptr;
@@ -218,8 +199,10 @@ class NetworkInterface : public ClockedObject, public Consumer
     int* remainad_initial_task_exec_time;
     bool* initial_task_busy_flag;
     int* app_idx_in_initial_thread_queue;
-    int* initial_app_ratio_token; //token for init task in different apps to reach certain ratio
-    int* fixed_initial_app_ratio_token;
+    // int* initial_app_ratio_token; //token for init task in different apps to reach certain ratio
+    // int* fixed_initial_app_ratio_token;
+    std::vector<int> fixed_initial_app_ratio_token;
+    std::vector<int> initial_app_ratio_token;    //token for init task in different apps to reach certain ratio
     //record PE-7 position for initial task judgement in NI
     int entrance_NI;
     int entrance_core;

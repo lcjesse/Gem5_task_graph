@@ -117,6 +117,7 @@ class GarnetNetwork : public Network, public Consumer
     int get_entrance_NI(){ return entrance_NI; }
     int get_entrance_core(){ return entrance_core; }
     int get_entrance_idx_in_NI(){ return entrance_idx_in_NI; }
+    int get_m_num_application(){ return m_num_application; }
 
 
     // Methods used by Topology to setup the network
@@ -238,7 +239,7 @@ class GarnetNetwork : public Network, public Consumer
     int gcd(int a, int b){
         return b ? gcd(b,a%b):a;
     }
-    int *get_ratio_token(int *iterations);
+    std::vector<int> get_ratio_token(int *iterations);
 
   protected:
     // Configuration
